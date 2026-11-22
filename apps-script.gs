@@ -55,8 +55,27 @@ function leerBase() {
     cols: cols,
     players: players,
     fis: aj["columna_fisico"] ? String(aj["columna_fisico"]).trim() : null,
-    bonus: isNaN(bonus) ? 0.5 : bonus
+    bonus: isNaN(bonus) ? 0.5 : bonus,
+    partidos: leerPartidos()
   };
+}
+
+// Historial para las estadísticas: un objeto por fila de la pestaña Partidos
+function leerPartidos() {
+  const h = SpreadsheetApp.getActive().getSheetByName("Partidos");
+  if (!h) return [];
+  const v = h.getDataRange().getValues();
+  const gol = function (x) { return x === "" || x === null || isNaN(Number(x)) ? null : Number(x); };
+  const out = [];
+  for (let i = 1; i < v.length; i++) {
+    if (!v[i][0]) continue;
+    const a = lista(v[i][1]), b = lista(v[i][2]);
+    if (!a.length || !b.length) continue;
+    let ga = gol(v[i][3]), gb = gol(v[i][4]);
+    if (ga === null || gb === null) ga = gb = null;
+    out.push({ f: fechaISO(v[i][0]), a: a, b: b, ga: ga, gb: gb, g: lista(v[i][5] || "") });
+  }
+  return out;
 }
 
 function fechaISO(v) {
