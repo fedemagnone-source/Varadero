@@ -126,7 +126,7 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 <div id="out"></div>
 <section id="stats" hidden>
 <h2>Estadísticas</h2>
-<div class="opt" style="margin-top:0"><label>Período <select id="per"></select></label><label>Mínimo <select id="minpj"><option>1</option><option selected>3</option><option>5</option><option>10</option></select> partidos</label></div>
+<div class="opt" style="margin-top:0"><label>Período <select id="per"></select></label></div>
 <div id="stbody"></div>
 </section>
 <footer class="pie">Un producto de la comisión I+D</footer>
@@ -317,6 +317,9 @@ $("out").addEventListener("click",e=>{const t=e.target;
 });
 $("q").addEventListener("input",render);
 /* ---------- estadísticas ---------- */
+// Umbrales: se muestran jugadores con más de MIN_PJ partidos, y las estadísticas
+// que dependen del resultado (G-E-P, %, goles, racha…) solo con más de MIN_RES partidos con resultado.
+const MIN_PJ=10,MIN_RES=20;
 let M=null,TAB="eq",SORT={k:"pct",d:-1},DET=null;
 function setTab(t){
  TAB=t;const eq=t==="eq";
@@ -354,7 +357,7 @@ function table(ms){
   const s=S.get(x.n);s.pj++;if(x.mvp)s.mvp++;if(x.arq)s.arq++;if(x.nota!=null){s.ns+=x.nota;s.nn++}
   if(x.has){s.jr++;s.gf+=x.f;s.gc+=x.c;s[x.r.toLowerCase()]++;s.res.push(x.r)}
  });
- return [...S.values()].map(s=>({...s,pct:s.jr?s.g/s.jr:null,dg:s.gf-s.gc,nota:s.nn?s.ns/s.nn:null}));
+ return [...S.values()].map(s=>{const full=s.jr>MIN_RES;return {...s,full,pct:full?s.g/s.jr:null,dg:full?s.gf-s.gc:null,nota:s.nn?s.ns/s.nn:null}});
 }
 const COLS=[["name","Jugador"],["pj","PJ"],["g","G-E-P"],["pct","% G"],["dg","DG"],["nota","Nota"],["mvp","MVP"],["res","Últimos"]];
 function renderStats(){
@@ -362,43 +365,45 @@ function renderStats(){
  if(!M){b.innerHTML=`<p class="hint">${CFG.script?"Para ver estadísticas hay que publicar la versión nueva del script de la hoja (Implementar → Administrar implementaciones → Editar → Versión nueva).":"No hay conexión con la hoja de partidos."}</p>`;return}
  const ps=periods(),sp=$("per");
  if(sp.options.length!==ps.length){const v=sp.value;sp.innerHTML=ps.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join("");if(ps.some(p=>p[0]===v))sp.value=v}
- const per=sp.value||"all",min=+$("minpj").value;
+ const per=sp.value||"all";
  const ms=M.filter(m=>inPer(m,per)).sort((x,y)=>String(x.f).localeCompare(String(y.f)));
  if(!ms.length){b.innerHTML='<p class="hint">No hay partidos en este período.</p>';return}
  const wr=ms.filter(m=>m.ga!=null),gt=wr.reduce((a,m)=>a+m.ga+m.gb,0);
- const T=table(ms);
- const val=(s,k)=>k==="name"?s.name:k==="res"?s.g:s[k];
+ const T=table(ms).filter(s=>s.pj>MIN_PJ);
+ if(!T.length){b.innerHTML=`<p class="hint">En este período nadie tiene más de ${MIN_PJ} partidos.</p>`;return}
+ const RES=["g","pct","dg","res"];
+ const val=(s,k)=>k==="name"?s.name:k==="res"||k==="g"?(s.full?s.g:null):s[k];
  T.sort((x,y)=>{
-  const lx=x.jr<min,ly=y.jr<min;if(SORT.k!=="name"&&SORT.k!=="pj"&&lx!==ly)return lx?1:-1;
+  if(RES.includes(SORT.k)&&x.full!==y.full)return x.full?-1:1;
   let a=val(x,SORT.k),c=val(y,SORT.k);
   if(a==null&&c==null)return 0;if(a==null)return 1;if(c==null)return -1;
   const r=typeof a==="string"?a.localeCompare(c,"es"):a-c;
   return r*SORT.d||(y.jr-x.jr)||x.name.localeCompare(y.name,"es");
  });
- const top=k=>{const c=T.filter(s=>s.jr>=min&&s[k]!=null).sort((x,y)=>y[k]-x[k]||y.jr-x.jr)[0];return c?esc(c.name):"–"};
+ const top=k=>{const c=T.filter(s=>s.full&&s[k]!=null).sort((x,y)=>y[k]-x[k]||y.jr-x.jr)[0];return c?esc(c.name):"–"};
  const mt=T.filter(s=>s.mvp).sort((x,y)=>y.mvp-x.mvp)[0];
  let h=`<div class="tiles"><div class="tile"><b>${ms.length}</b><span>partidos${ms.length>wr.length?` · ${ms.length-wr.length} sin resultado`:""}</span></div>
  <div class="tile"><b>${wr.length?f1(gt/wr.length):"–"}</b><span>goles por partido</span></div>
  <div class="tile"><b style="font-size:1rem">${top("pct")}</b><span>mejor % de victorias</span></div>
  <div class="tile"><b style="font-size:1rem">${mt?esc(mt.name)+" ("+mt.mvp+")":"–"}</b><span>más veces MVP</span></div></div>`;
  if(DET&&!T.some(s=>s.name===DET))DET=null;
- if(DET)h+=detail(DET,ms,min);
- h+=`<p class="hint" style="margin:0">Tocá un jugador para ver su detalle. Los que tienen menos de ${min} partido${min>1?"s":""} con resultado van al final.</p>
+ if(DET)h+=detail(DET,ms);
+ h+=`<p class="hint" style="margin:0">Jugadores con más de ${MIN_PJ} partidos. Ganados, % de victorias, goles y últimos resultados: solo con más de ${MIN_RES} partidos con resultado. Tocá un jugador para ver su detalle.</p>
  <div class="tw"><table class="st"><thead><tr>${COLS.map(([k,l])=>`<th scope="col"><button data-sort="${k}" class="${SORT.k===k?"on":""}" aria-label="Ordenar por ${l}">${l}${SORT.k===k?(SORT.d>0?" ▲":" ▼"):""}</button></th>`).join("")}</tr></thead><tbody>`+
- T.map(s=>`<tr class="pr${s.jr<min?" low":""}" tabindex="0" data-pl="${esc(s.name)}"><td class="nm">${esc(s.name)}</td><td>${s.pj}</td><td>${s.jr?s.g+"-"+s.e+"-"+s.p:"–"}</td><td>${pc(s.pct)}</td><td>${s.jr?sg(s.dg):"–"}</td><td>${f1(s.nota)}</td><td>${s.mvp?`<span class="mvp">${s.mvp}</span>`:"–"}</td><td>${dots(s.res.slice(-5))}</td></tr>`).join("")+
+ T.map(s=>`<tr class="pr" tabindex="0" data-pl="${esc(s.name)}"><td class="nm">${esc(s.name)}</td><td>${s.pj}</td><td>${s.full?s.g+"-"+s.e+"-"+s.p:"–"}</td><td>${pc(s.pct)}</td><td>${s.full?sg(s.dg):"–"}</td><td>${f1(s.nota)}</td><td>${s.mvp?`<span class="mvp">${s.mvp}</span>`:"–"}</td><td>${s.full?dots(s.res.slice(-5)):"–"}</td></tr>`).join("")+
  `</tbody></table></div><p class="hint">PJ: partidos jugados · G-E-P: ganados, empatados y perdidos (solo partidos con resultado) · DG: diferencia de goles · Nota: puntaje promedio.</p>`;
  b.innerHTML=h;
 }
 const RW={G:"ganado",E:"empatado",P:"perdido"};
 const dots=r=>r.length?`<span class="dots" role="img" aria-label="Últimos: ${r.map(x=>RW[x]).join(", ")}">${r.map(x=>`<i class="dot ${x}"></i>`).join("")}</span>`:"–";
-function detail(name,ms,min){
+function detail(name,ms){
  const A=apps(ms),mine=A.filter(x=>x.n===name),s=table(ms).find(t=>t.name===name);
  const mi=new Set(mine.map(x=>x.mi));
  // compañeros y rivales
  const tm=new Map(),rv=new Map();
  const add=(mp,n,r)=>{if(!mp.has(n))mp.set(n,{n,j:0,g:0,p:0});const o=mp.get(n);o.j++;if(r==="G")o.g++;if(r==="P")o.p++};
  mine.filter(x=>x.has).forEach(x=>{x.t.forEach(n=>n!==name&&add(tm,n,x.r));x.o.forEach(n=>add(rv,n,x.r))});
- const need=Math.max(2,Math.min(min,3));
+ const need=3,F=s.full,nr=`<span class="hint">Necesita más de ${MIN_RES} partidos con resultado (tiene ${s.jr})</span>`;
  const best=(mp,k)=>[...mp.values()].filter(o=>o.j>=need).sort((x,y)=>y[k]/y.j-x[k]/x.j||y.j-x.j)[0];
  const freq=[...tm.values()].sort((x,y)=>y.j-x.j)[0];
  const bt=best(tm,"g"),bn=best(rv,"p");
@@ -407,17 +412,18 @@ function detail(name,ms,min){
  const racha=rs.length?k+" "+(rs[rs.length-1]==="G"?(k>1?"ganados":"ganado"):rs[rs.length-1]==="P"?(k>1?"perdidos":"perdido"):(k>1?"empates":"empate")):"–";
  const notas=mine.filter(x=>x.nota!=null).map(x=>x.nota);
  const last=mine.slice().reverse().slice(0,10);
- const duo=(t,o,txt)=>`<div><small>${t}</small>${o?`<b>${esc(o.n)}</b> · ${txt(o)}`:`<span class="hint">Faltan partidos (mín. ${need})</span>`}</div>`;
+ const duo=(t,o,txt,res)=>`<div><small>${t}</small>${res&&!F?nr:o?`<b>${esc(o.n)}</b> · ${txt(o)}`:`<span class="hint">Faltan partidos (mín. ${need})</span>`}</div>`;
  return `<div class="det" id="det"><div class="trow"><h3>${esc(name)}</h3><button class="x" data-close aria-label="Cerrar detalle">✕</button></div>
  <div class="tiles"><div class="tile"><b>${s.pj}</b><span>partidos${s.arq?` · ${s.arq} de arquero`:""}</span></div>
- <div class="tile"><b>${pc(s.pct)}</b><span>victorias (${s.jr?s.g+"-"+s.e+"-"+s.p:"sin resultados"})</span></div>
- <div class="tile"><b>${s.jr?f1(s.gf/s.jr)+" / "+f1(s.gc/s.jr):"–"}</b><span>goles a favor / en contra por partido</span></div>
+ ${F?`<div class="tile"><b>${pc(s.pct)}</b><span>victorias (${s.g}-${s.e}-${s.p})</span></div>
+ <div class="tile"><b>${f1(s.gf/s.jr)} / ${f1(s.gc/s.jr)}</b><span>goles a favor / en contra por partido</span></div>`:""}
  <div class="tile"><b>${f1(s.nota)}</b><span>nota promedio${notas.length?` (${notas.length})`:""}${notas.length?` · máx ${f1(Math.max(...notas))}`:""}</span></div>
  <div class="tile"><b class="${s.mvp?"mvp":""}">${s.mvp}</b><span>veces MVP</span></div>
- <div class="tile"><b style="font-size:1rem">${racha}</b><span>racha actual</span></div></div>
- <div class="duo">${duo("Mejor dupla (más victorias juntos)",bt,o=>`${o.g} de ${o.j} ganados (${pc(o.g/o.j)})`)}
+ ${F?`<div class="tile"><b style="font-size:1rem">${racha}</b><span>racha actual</span></div>`:""}</div>
+ ${F?"":`<p class="hint" style="margin:0">Victorias, goles y racha: necesita más de ${MIN_RES} partidos con resultado (tiene ${s.jr}).</p>`}
+ <div class="duo">${duo("Mejor dupla (más victorias juntos)",bt,o=>`${o.g} de ${o.j} ganados (${pc(o.g/o.j)})`,1)}
  ${duo("Compañero más frecuente",freq,o=>`${o.j} partido${o.j>1?"s":""} juntos`)}
- ${duo("Bestia negra (más derrotas en contra)",bn,o=>`${o.p} de ${o.j} perdidos (${pc(o.p/o.j)})`)}</div>
+ ${duo("Bestia negra (más derrotas en contra)",bn,o=>`${o.p} de ${o.j} perdidos (${pc(o.p/o.j)})`,1)}</div>
  <h3 style="margin-top:14px;font-size:.95rem">Últimos partidos</h3>
  <ul class="ml">${last.map(x=>`<li><span>${fd(x.m.f)}</span>${x.has?`<span class="rb ${x.r}" title="${RW[x.r]}">${x.r}</span>`:`<span class="rb E" style="opacity:.5" title="sin resultado">?</span>`}<span class="who">${x.has?x.f+"–"+x.c+" · ":""}con ${esc(x.t.filter(n=>n!==name).join(", "))}</span><span>${x.mvp?'<span class="mvp" title="MVP">★ </span>':""}${x.nota!=null?f1(x.nota):""}</span></li>`).join("")}</ul></div>`;
 }
@@ -427,7 +433,7 @@ $("stbody").addEventListener("click",e=>{
  const r=e.target.closest("[data-pl]");if(r){DET=r.dataset.pl;renderStats();const d=$("det");if(d)d.scrollIntoView({behavior:"smooth",block:"center"})}
 });
 $("stbody").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches("[data-pl]")){e.preventDefault();e.target.click()}});
-$("per").onchange=renderStats;$("minpj").onchange=renderStats;
+$("per").onchange=renderStats;
 const fromJson=()=>fetch("jugadores.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{apply(d.cols,d.players,d);$("msg").textContent=""});
 const msgErr=()=>{$("msg").textContent="No se pudieron cargar los jugadores. Avisale al administrador.";$("msg").className="err"};
 fetch("config.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).catch(()=>({})).then(c=>{
