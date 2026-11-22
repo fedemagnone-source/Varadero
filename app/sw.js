@@ -1,4 +1,4 @@
-const CACHE = "varadero-v36";
+const CACHE = "varadero-v39";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./jugadores.json", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/apple-touch-icon.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
