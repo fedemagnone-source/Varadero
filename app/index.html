@@ -329,8 +329,9 @@ $("out").addEventListener("click",e=>{const t=e.target;
 });
 $("q").addEventListener("input",render);
 /* ---------- estadísticas ---------- */
-// Umbrales: se muestran jugadores con más de MIN_PJ partidos, y las estadísticas
-// que dependen del resultado (G-E-P, %, goles, racha…) solo con más de MIN_RES presencias
+// Umbrales: el ranking muestra jugadores con MIN_PJ partidos o más, y los rankings
+// que dependen del resultado (% de victorias, diferencia de gol) solo con MIN_RES presencias o más
+// (la ficha de cada jugador muestra todas sus estadísticas, sin este segundo mínimo)
 // (se calculan con los partidos que tienen resultado cargado).
 const MIN_PJ=10,MIN_RES=20;
 let M=null,TAB="eq",RK="pj",DET=null;
@@ -370,14 +371,14 @@ function table(ms){
   const s=S.get(x.n);s.pj++;if(x.mvp)s.mvp++;if(x.arq)s.arq++;if(x.nota!=null){s.ns+=x.nota;s.nn++}
   if(x.has){s.jr++;s.gf+=x.f;s.gc+=x.c;s[x.r.toLowerCase()]++;s.res.push(x.r)}
  });
- return [...S.values()].map(s=>{const full=s.pj>MIN_RES;return {...s,full,pct:full&&s.jr?s.g/s.jr:null,dg:full&&s.jr?s.gf-s.gc:null,nota:s.nn?s.ns/s.nn:null}});
+ return [...S.values()].map(s=>{const full=s.pj>=MIN_RES;return {...s,full,pct:full&&s.jr?s.g/s.jr:null,dg:full&&s.jr?s.gf-s.gc:null,nota:s.nn?s.ns/s.nn:null}});
 }
 const RANKS=[
- {k:"pj",l:"Presencias",v:s=>s.pj,f:v=>v,ok:()=>true,note:()=>`Partidos jugados. Jugadores con más de ${MIN_PJ}.`},
- {k:"pct",l:"% victorias",v:s=>s.pct,f:pc,ok:s=>s.full&&s.jr>0,note:()=>`Solo jugadores con más de ${MIN_RES} partidos. Se calcula sobre los partidos con resultado cargado.`},
+ {k:"pj",l:"Presencias",v:s=>s.pj,f:v=>v,ok:()=>true,note:()=>`Partidos jugados. Jugadores con ${MIN_PJ} partidos o más.`},
+ {k:"pct",l:"% victorias",v:s=>s.pct,f:pc,ok:s=>s.full&&s.jr>0,note:()=>`Solo jugadores con ${MIN_RES} partidos o más. Se calcula sobre los partidos con resultado cargado.`},
  {k:"nota",l:"Nota",v:s=>s.nota,f:f1,ok:s=>s.nota!=null,note:()=>"Promedio de los puntajes cargados en la hoja."},
  {k:"mvp",l:"MVP",v:s=>s.mvp,f:v=>v,ok:s=>s.mvp>0,note:()=>"Veces elegido MVP (si es compartido, suma para todos)."},
- {k:"dg",l:"Dif. de gol",v:s=>s.dg,f:sg,ok:s=>s.full&&s.jr>0,note:()=>`Goles a favor menos en contra. Solo jugadores con más de ${MIN_RES} partidos.`}
+ {k:"dg",l:"Dif. de gol",v:s=>s.dg,f:sg,ok:s=>s.full&&s.jr>0,note:()=>`Goles a favor menos en contra. Solo jugadores con ${MIN_RES} partidos o más.`}
 ];
 const ini=n=>String(n).trim().split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase();
 function renderStats(){
@@ -387,7 +388,7 @@ function renderStats(){
  if(sp.options.length!==ps.length){const v=sp.value;sp.innerHTML=ps.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join("");if(ps.some(p=>p[0]===v))sp.value=v}
  const ms=M.filter(m=>inPer(m,sp.value||"all")).sort((x,y)=>String(x.f).localeCompare(String(y.f)));
  if(!ms.length){b.innerHTML='<p class="hint">No hay partidos en este período.</p>';return}
- const T=table(ms).filter(s=>s.pj>MIN_PJ);
+ const T=table(ms).filter(s=>s.pj>=MIN_PJ);
  if(DET&&!T.some(s=>s.name===DET))DET=null;
  if(DET){b.innerHTML=ficha(DET,ms);return}
  const wr=ms.filter(m=>m.ga!=null),gt=wr.reduce((a,m)=>a+m.ga+m.gb,0);
@@ -409,7 +410,7 @@ function renderStats(){
 }
 const RW={G:"ganado",E:"empatado",P:"perdido"};
 function ficha(name,ms){
- const mine=apps(ms).filter(x=>x.n===name),s=table(ms).find(t=>t.name===name),F=s.full&&s.jr>0;
+ const mine=apps(ms).filter(x=>x.n===name),s0=table(ms).find(t=>t.name===name),s={...s0,pct:s0.jr?s0.g/s0.jr:null,dg:s0.gf-s0.gc},F=s.jr>0;
  const tm=new Map(),rv=new Map();
  const add=(mp,n,r)=>{if(!mp.has(n))mp.set(n,{n,j:0,g:0,p:0});const o=mp.get(n);o.j++;if(r==="G")o.g++;if(r==="P")o.p++};
  mine.filter(x=>x.has).forEach(x=>{x.t.forEach(n=>n!==name&&add(tm,n,x.r));x.o.forEach(n=>add(rv,n,x.r))});
@@ -423,7 +424,7 @@ function ficha(name,ms){
  <div class="hd"><span class="av" aria-hidden="true">${esc(ini(name))}</span><div><div class="nm">${esc(name)}</div><div class="s">${sub}</div></div></div>`;
  h+=F?`<div class="tiles"><div class="tile"><b>${pc(s.pct)}</b><span>victorias</span></div><div class="tile"><b>${sg(s.dg)}</b><span>dif. de gol</span></div><div class="tile"><b>${f1(s.gf/s.jr)}</b><span>goles a favor</span></div><div class="tile"><b>${f1(s.nota)}</b><span>nota</span></div></div>`
   :`<div class="tiles"><div class="tile"><b>${s.pj}</b><span>partidos</span></div><div class="tile"><b>${f1(s.nota)}</b><span>nota</span></div><div class="tile"><b class="${s.mvp?"mvp":""}">${s.mvp}</b><span>MVP</span></div></div>
-  <div class="lk">🔒 Victorias, goles y racha a partir de ${MIN_RES+1} partidos (le falta${MIN_RES+1-s.pj>1?"n":""} ${MIN_RES+1-s.pj}).</div>`;
+  <div class="lk">Todavía no tiene partidos con resultado cargado, así que no hay victorias ni goles para mostrar.</div>`;
  if(F){
   const C=2*Math.PI*34;let off=0;
   const seg=(n,c)=>{if(!n)return "";const l=C*n/s.jr,r=`<circle r="34" cx="45" cy="45" fill="none" style="stroke:var(--${c})" stroke-width="14" stroke-dasharray="${l} ${C-l}" stroke-dashoffset="${-off}" transform="rotate(-90 45 45)"/>`;off+=l;return r};
@@ -444,7 +445,7 @@ function ficha(name,ms){
  }
  h+=`<div class="box"><h3>Todos sus partidos, del primero al último</h3><div class="strip" role="img" aria-label="${s.g} ganados, ${s.e} empatados, ${s.p} perdidos, ${s.pj-s.jr} sin resultado">${mine.map(x=>`<i class="${x.r||"n"}" title="${fd(x.m.f)}: ${x.r?RW[x.r]:"sin resultado"}"></i>`).join("")}</div>
  <div class="lg" style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:.75rem"><span><i class="G"></i>ganado</span><span><i class="E"></i>empate</span><span><i class="P"></i>perdido</span><span><i style="background:var(--line)"></i>sin resultado</span></div></div>`;
- const duo=(t,o,txt,res)=>`<div><small>${t}</small>${res&&!F?`<span class="hint">A partir de ${MIN_RES+1} partidos</span>`:o?`<b>${esc(o.n)}</b> · ${txt(o)}`:`<span class="hint">Todavía no hay datos suficientes</span>`}</div>`;
+ const duo=(t,o,txt,res)=>`<div><small>${t}</small>${res&&!F?`<span class="hint">Sin partidos con resultado</span>`:o?`<b>${esc(o.n)}</b> · ${txt(o)}`:`<span class="hint">Todavía no hay datos suficientes</span>`}</div>`;
  h+=`<div class="duo">${duo("Mejor dupla (más victorias juntos)",bt,o=>`${o.g} de ${o.j} ganados`,1)}${duo("Compañero más frecuente",freq,o=>`${o.j} partido${o.j>1?"s":""} juntos`)}${duo("Bestia negra (más derrotas en contra)",bn,o=>`${o.p} de ${o.j} perdidos`,1)}</div>`;
  h+=`<div class="box"><h3>Últimos partidos</h3><ul class="ml">${mine.slice().reverse().slice(0,10).map(x=>`<li><span>${fd(x.m.f)}</span>${x.has?`<span class="rb ${x.r}" title="${RW[x.r]}">${x.r}</span>`:`<span class="rb E" style="opacity:.5" title="sin resultado">?</span>`}<span class="who">${x.has?x.f+"–"+x.c+" · ":""}con ${esc(x.t.filter(n=>n!==name).join(", "))}</span><span>${x.mvp?'<span class="mvp" title="MVP">★ </span>':""}${x.nota!=null?f1(x.nota):""}</span></li>`).join("")}</ul></div>`;
  return h;
