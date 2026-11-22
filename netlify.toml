@@ -1,0 +1,4 @@
+# Varadero App es un sitio de archivos listos: no necesita construcción.
+[build]
+  command = ""
+  publish = "."

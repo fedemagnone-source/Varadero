@@ -1,0 +1,38 @@
+Varadero App (PWA) - base y historial en Google Sheets
+
+ARCHIVOS
+- index.html            App pública (elige 10 jugadores y arma equipos).
+- config.json           Conexión con la hoja de Google (url del script + clave). Se completa una sola vez.
+- jugadores.json        Copia de respaldo de la base. Solo se usa si no hay conexión con la hoja ni copia guardada.
+- admin.html            Panel anterior, solo para exportar lo que se haya guardado antes en el navegador.
+- google/apps-script.gs Código que se pega en la hoja de Google (Extensiones > Apps Script).
+- google/plantilla-hoja.xlsx  Plantilla con las 3 pestañas (Jugadores, Partidos, Ajustes).
+- netlify.toml          Le indica a Netlify que no hay nada que construir (publica los archivos tal cual).
+- manifest.webmanifest, sw.js, icons/   Instalación y funcionamiento sin internet.
+
+CONFIGURACIÓN (una sola vez)
+1. Subí google/plantilla-hoja.xlsx a Google Drive y abrila con Google Sheets (o creá una hoja con 3 pestañas
+   con estos nombres exactos: Jugadores, Partidos, Ajustes).
+   - Jugadores: nombre | habilidades... | total (con fórmula =SUMA(B2:D2) en cada fila).
+   - Partidos: fecha | equipo_a | equipo_b | goles_a | goles_b | arqueros | registrado.
+   - Ajustes: columna_fisico = físico  y  ventaja = 0,5.
+2. En la hoja: Extensiones > Apps Script. Borrá lo que haya, pegá el contenido de google/apps-script.gs,
+   cambiá CAMBIAR-POR-UNA-CLAVE por una clave tuya y guardá.
+3. Implementar > Nueva implementación > tipo "Aplicación web". Ejecutar como: Yo. Quién tiene acceso: Cualquier persona.
+   Implementar, autorizar los permisos y copiar la URL que termina en /exec.
+4. Editá config.json: poné la URL en "script" y la clave en "token". Subí la carpeta a Netlify (Deploys).
+
+USO DIARIO
+- Jugadores: se editan directo en la pestaña Jugadores de la hoja. La app los toma cada vez que se abre.
+- Partidos: en la app, elegí una opción y tocá "Guardar en historial". Aparece una fila nueva en la pestaña Partidos.
+  Después cargá los goles (goles_a y goles_b) en la hoja.
+- Si cambiás el código del script, hay que publicar una versión nueva: Implementar > Administrar implementaciones > Editar > Versión nueva.
+
+PASAR LO ANTERIOR A LA HOJA
+- Jugadores: pegá tu CSV en la pestaña Jugadores.
+- Historial viejo: en admin.html > Ajustes > Historial > Descargar CSV, y pegá las filas en la pestaña Partidos
+  (las columnas coinciden: fecha, equipo_a, equipo_b, goles_a, goles_b, arqueros).
+
+IMPORTANTE
+- La URL del script y la clave quedan visibles en el código de la app (config.json). Sirven para limitar el uso casual, no son secretas.
+- Si cambiás index.html, cambiá el nombre de la caché en sw.js (varadero-v35 > varadero-v36).

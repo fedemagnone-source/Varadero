@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6f4a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Varadero App">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Varadero App</title>
+<style>
+:root{--bg:#eef2ea;--card:#fbfcf8;--ink:#17231a;--mute:#5d6b60;--line:#cfd8ca;--a:#ff5f00;--b:#5f6b65;--ok:#2f7d4f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121a14;--card:#1a251d;--ink:#e8efe6;--mute:#93a397;--line:#2e3d32;--a:#ff9326;--b:#aab5ae;--ok:#6fcf97}}
+:root[data-theme="dark"]{--bg:#121a14;--card:#1a251d;--ink:#e8efe6;--mute:#93a397;--line:#2e3d32;--a:#ff9326;--b:#aab5ae;--ok:#6fcf97}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Trebuchet MS","Segoe UI",system-ui,sans-serif}
+main{max-width:920px;margin:0 auto;padding:0 16px 60px}
+h1{font:800 1.5rem/1.1 Georgia,"Times New Roman",serif;margin:0;letter-spacing:-.02em}
+h2{font:700 1.15rem Georgia,serif;margin:0 0 10px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+textarea{width:100%;min-height:110px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;font:13px/1.4 ui-monospace,Menlo,monospace}
+button,label.btn{font:600 .95rem inherit;font-family:inherit;background:var(--ink);color:var(--bg);border:0;border-radius:8px;padding:9px 14px;cursor:pointer;display:inline-block}
+button.ghost,label.btn{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:focus-visible,input:focus-visible,label.btn:focus-within{outline:3px solid var(--a);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.hint{color:var(--mute);font-size:.88rem}
+#list{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin-top:12px}
+.pl{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;cursor:pointer}
+.pl.off{opacity:.45;cursor:not-allowed}
+.pl.on{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent)}
+.pl b{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl span{font-variant-numeric:tabular-nums;color:var(--mute)}
+.alt{border:1px solid var(--line);border-radius:12px;margin-top:14px;overflow:hidden}
+.alt>header{display:flex;justify-content:space-between;gap:8px;padding:7px 12px;background:var(--bg);font-weight:600;font-size:.88rem;flex-wrap:wrap}
+.alt>header em{font-style:normal;color:var(--ok);font-size:.8rem;font-weight:500}
+.teams{display:grid;grid-template-columns:1fr 1fr}
+.team{padding:10px 10px}
+.team+.team{border-left:1px solid var(--line)}
+.team h3{margin:0 0 6px;font-size:1rem}
+.A h3{color:var(--a)}.B h3{color:var(--b)}
+.team ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:5px}
+.team li{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:2px 9px;font-size:.88rem;font-weight:600;white-space:nowrap}
+.tot{margin-top:6px;font-size:.78rem;font-weight:600}
+.A .tot{color:var(--a)}.B .tot{color:var(--b)}
+.sk{padding:10px 14px;border-top:1px solid var(--line);display:grid;gap:5px}
+.bar{display:grid;grid-template-columns:84px 1fr;gap:8px;align-items:center;font-size:.85rem}
+.bar .lb{color:var(--mute);overflow:hidden;text-overflow:ellipsis}
+.dv{position:relative;height:16px;background:var(--bg);border:1px solid var(--line);border-radius:8px}
+.dv:before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:var(--mute);opacity:.7}
+.dv i{position:absolute;top:2px;bottom:2px;border-radius:3px;min-width:3px}
+.dv .ia{right:50%;background:var(--a)}.dv .ib{left:50%;background:var(--b)}
+.bar .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.lg{display:flex;justify-content:space-between;font-size:.75rem;font-weight:600}
+.sc{font-size:.75rem;color:var(--mute);text-align:center}
+.gkb{background:transparent;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:1rem;opacity:.45;line-height:1.4}
+.gkb.on{opacity:1;border-color:var(--ok);background:color-mix(in srgb,var(--ok) 20%,transparent)}
+.opt{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:.92rem}
+.opt select,.opt input{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+.opt input{width:70px}
+.err{color:var(--b);font-weight:600}
+@media(max-width:320px){.teams{grid-template-columns:1fr}.team+.team{border-left:0;border-top:1px solid var(--line)}}
+#toast{position:fixed;left:50%;top:calc(var(--hh,150px) + env(safe-area-inset-top,0px) + 8px);transform:translate(-50%,-10px);max-width:min(92vw,420px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:.9rem;font-weight:600;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#q{width:100%;margin-top:6px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font:inherit}
+#top{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--bg);margin:0 -16px 12px;padding:10px 16px;border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:31}
+.trow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#cnt2{font-weight:700;font-size:.95rem;font-variant-numeric:tabular-nums;color:var(--mute)}
+#top #q{margin-top:8px}
+.brow{display:flex;gap:8px;margin-top:8px}
+.brow button{flex:1;padding:9px 10px}
+.alt.chosen{border-color:var(--a);box-shadow:0 0 0 2px var(--a)}
+.foot{padding:10px 12px;border-top:1px solid var(--line)}
+.pie{margin-top:28px;text-align:center;font-size:.78rem;color:var(--mute);letter-spacing:.02em}
+</style>
+</head>
+<body>
+<main>
+<header id="top">
+ <div class="trow"><h1>Varadero App</h1><span id="cnt2"></span></div>
+ <div id="ctl" hidden>
+  <input id="q" type="search" placeholder="Buscar jugador…" autocomplete="off" aria-label="Buscar jugador">
+  <div class="brow"><button class="ghost" id="none">Limpiar selección</button><button id="go">Armar equipos</button></div>
+ </div>
+</header>
+
+<p id="msg" class="hint">Cargando jugadores…</p>
+
+<section id="sel" hidden>
+<h2>¿Quiénes juegan hoy? <span class="hint" id="cnt"></span></h2>
+<p class="hint" style="margin:8px 0 0">Tocá 🧤 en quien juega de arquero hoy (máximo 2).</p>
+<div id="list"></div>
+<select id="fis" hidden></select><input id="bonus" type="hidden" value="0.5">
+<div id="err" class="err"></div>
+</section>
+
+<div id="out"></div>
+<footer class="pie">Un producto de la comisión I+D</footer>
+</main>
+<div id="toast" role="alert" aria-live="assertive"></div>
+<script>
+let P=[],K=[],sel=new Set(),gk=new Set(),cands=[],page=0;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num=v=>parseFloat(String(v).replace(",","."));
+const avg=p=>p.v.reduce((a,b)=>a+b,0)/p.v.length;
+function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function fetchS(k){try{return localStorage.getItem(k)}catch(e){return null}}
+
+function apply(cols,out,cfg){
+ K=cols;P=out;
+ sel=new Set(P.length<=10?P.map((_,i)=>i):[]);gk=new Set();
+ $("fis").innerHTML=K.map((k,i)=>`<option value="${i}">${esc(k)}</option>`).join("");
+ let g=cfg&&cfg.fis!=null?K.indexOf(cfg.fis):-1;if(g<0)g=K.findIndex(k=>/f[ií]s|physic|stamina|resist/i.test(k));if(g>=0)$("fis").value=g;if(cfg&&cfg.bonus!=null)$("bonus").value=cfg.bonus;
+ $("sel").hidden=false;$("ctl").hidden=false;render();$("out").innerHTML="";
+}
+const norm=s=>String(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+function render(){
+ $("list").innerHTML=P.map((p,i)=>!norm(p.name).includes(norm($("q").value))?"":`<div class="pl ${sel.has(i)?"on":""}${sel.size>=10&&!sel.has(i)?" off":""}" role="checkbox" aria-checked="${sel.has(i)}" aria-disabled="${sel.size>=10&&!sel.has(i)}" tabindex="0" data-i="${i}"><input type="checkbox" tabindex="-1" ${sel.has(i)?"checked":""} ${sel.size>=10&&!sel.has(i)?"disabled":""}><b>${esc(p.name)}</b><button class="gkb ${gk.has(i)?"on":""}" data-gk="${i}" title="Arquero" aria-pressed="${gk.has(i)}" ${sel.size>=10&&!sel.has(i)?"disabled":""}>🧤</button></div>`).join("");
+ if(!$("list").innerHTML.trim())$("list").innerHTML='<p class="hint">Sin resultados.</p>';
+ $("cnt").textContent="("+sel.size+" de 10)";$("cnt2").textContent=sel.size+"/10";
+}
+const setHH=()=>document.documentElement.style.setProperty("--hh",$("top").offsetHeight+"px");
+if(window.ResizeObserver)new ResizeObserver(setHH).observe($("top"));window.addEventListener("resize",setHH);setHH();
+let tt;function toast(m){const t=$("toast");clearTimeout(tt);t.textContent=m;t.className="show";tt=setTimeout(()=>{t.className=""},3200)}
+function addSel(i){if(sel.has(i))return true;if(sel.size>=10){toast("Ya elegiste 10 jugadores. Sacá a alguien para sumar otro.");return false}$("err").textContent="";sel.add(i);return true}
+function toggle(el){const i=+el.dataset.i;if(sel.has(i)){sel.delete(i);gk.delete(i);$("err").textContent=""}else if(!addSel(i))return;render()}
+$("list").addEventListener("click",e=>{const g=e.target.closest(".gkb");if(g){const i=+g.dataset.gk;$("err").textContent="";if(gk.has(i))gk.delete(i);else if(gk.size>=2){toast("Máximo 2 arqueros por partido.");return}else if(addSel(i))gk.add(i);else return;render();return}const el=e.target.closest(".pl");if(el)toggle(el)});
+$("list").addEventListener("keydown",e=>{if(e.target.closest(".gkb"))return;if(e.key===" "||e.key==="Enter"){const el=e.target.closest(".pl");if(el){e.preventDefault();toggle(el);$("list").querySelector(`[data-i="${el.dataset.i}"]`).focus()}}});
+$("none").onclick=()=>{sel.clear();gk.clear();$("err").textContent="";render()};
+
+const pop=x=>{let c=0;while(x){x&=x-1;c++}return c};
+function build(){
+ $("err").textContent="";
+ const ids=[...sel].sort((a,b)=>a-b),n=ids.length;
+ if(n!==10){const f=10-n;toast(f>0?"Faltan "+f+(f>1?" jugadores":" jugador")+" para llegar a 10.":"Elegí exactamente 10 jugadores.");return}
+ if(gk.size>2){toast("Máximo 2 arqueros por partido.");return}
+ const k=n/2,m=K.length,V=ids.map(i=>P[i].v);
+ const VIS0=K.map((_,j)=>j).filter(j=>!/arquer|total/i.test(K[j])),VIS=VIS0.length?VIS0:K.map((_,j)=>j);
+ const tot=Array(m).fill(0);V.forEach(v=>v.forEach((x,j)=>tot[j]+=x));
+ const G=ids.map(id=>gk.has(id)),gkN=G.filter(Boolean).length,fj=+$("fis").value,bonus=Math.max(0,parseFloat($("bonus").value)||0);
+ const FI=ids.map(id=>P[id].v[fj]);
+ const all=[];
+ (function rec(i,c,mask){
+  if(c===k){all.push(mask);return}
+  if(n-i<k-c)return;
+  rec(i+1,c+1,mask|(1<<i));rec(i+1,c,mask);
+ })(1,1,1);
+ const scored=all.map(mask=>{
+  const s=Array(m).fill(0);
+  let fa=0,na=0,fb=0,nb=0;
+  for(let i=0;i<n;i++){
+   const inA=mask>>i&1;
+   if(inA)for(let j=0;j<m;j++)s[j]+=V[i][j];
+   if(!G[i]){if(inA){fa+=FI[i];na++}else{fb+=FI[i];nb++}}
+  }
+  const aG=k-na,bG=k-nb;
+  if(gkN>=2&&(aG===0||bG===0))return null;
+  const t=(aG>0&&bG===0)?bonus:(bG>0&&aG===0)?-bonus:0;
+  const sa=s.slice(),sb=s.map((x,j)=>tot[j]-x);
+  sa[fj]=k*fa/na;sb[fj]=k*fb/nb;
+  let dsum=0,dabs=0;
+  for(const j of VIS){const d=s[j]-(tot[j]-s[j]);dsum+=d;dabs+=j===fj?Math.abs(sa[j]-sb[j]-k*t):Math.abs(d)}
+  const overall=Math.abs(dsum)/VIS.length;
+  return {mask,cost:overall*2+dabs/VIS.length,overall,s,sa,sb,t,fj};
+ }).filter(Boolean).sort((a,b)=>a.cost-b.cost);
+ const pick=[];
+ for(const c of scored){
+  if(pick.every(p=>k-pop(p.mask&c.mask)>=2)){pick.push(c);if(pick.length>=3)break}
+ }
+ cands=pick.map(c=>({...c,ids,n,k,tot}));
+ page=0;chosen=-1;show();
+}
+let LO=0,HI=1;
+function radar(c){
+ const RK=K.map((_,j)=>j).filter(j=>!/arquer|total/i.test(K[j])),n=RK.length,R=110,cx=170,cy=150;
+ const ang=i=>-Math.PI/2+2*Math.PI*i/n;
+ const pt=(i,v)=>{const r=Math.max(0,(v-LO)/(HI-LO))*R;return [cx+r*Math.cos(ang(i)),cy+r*Math.sin(ang(i))]};
+ let g="";
+ for(let l=1;l<=4;l++)g+=`<polygon points="${RK.map((_,i)=>pt(i,LO+(HI-LO)*l/4).join(",")).join(" ")}" fill="none" style="stroke:var(--line)"/>`;
+ RK.forEach((j,i)=>{const e=pt(i,HI),co=Math.cos(ang(i));
+  g+=`<line x1="${cx}" y1="${cy}" x2="${e[0]}" y2="${e[1]}" style="stroke:var(--line)"/>`;
+  g+=`<text x="${cx+(R+12)*co}" y="${cy+(R+12)*Math.sin(ang(i))+4}" text-anchor="${co>.3?"start":co<-.3?"end":"middle"}" style="fill:var(--ink);font-size:13px">${esc(K[j])}</text>`});
+ const poly=(v,col)=>{const p=v.map((x,i)=>pt(i,x));return `<polygon points="${p.map(q=>q.join(",")).join(" ")}" style="fill:var(${col});fill-opacity:.22;stroke:var(${col});stroke-width:3"/>`+p.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="4" style="fill:var(${col})"/>`).join("")};
+ return `<svg viewBox="0 0 340 305" role="img" aria-label="Comparación de habilidades entre equipos" style="width:100%;max-width:440px;margin:0 auto;display:block">${g}${poly(RK.map(j=>c.sa[j]),"--a")}${poly(RK.map(j=>c.sb[j]),"--b")}</svg>`;
+}
+let VIEW="duelo",chosen=-1;
+let DSC=2;
+function duel(c){
+ const rows=K.map((kk,j)=>({kk,j})).filter(o=>!/arquer|total/i.test(o.kk)).map(({kk,j})=>{
+  const d=c.sa[j]-c.sb[j],ok=Math.abs(d)<0.05;
+  const w=ok?0:Math.max(3,Math.min(50,Math.abs(d)/DSC*50));
+  const bar=ok?"":`<i class="${d>0?"ia":"ib"}" style="width:${w}%"></i>`;
+  return `<div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--mute)"><span>${esc(kk)}</span></div><div class="dv" style="margin-top:3px">${bar}</div></div>`;
+ }).join("");
+ return `${rows}`;
+}
+function rr(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+function drawImg(c){
+ const W=1080,H=1080,cv=document.createElement("canvas");cv.width=W;cv.height=H;
+ const x=cv.getContext("2d"),F="'Trebuchet MS',system-ui,sans-serif";
+ x.fillStyle="#eef2ea";x.fillRect(0,0,W,H);
+ x.fillStyle="#1f6f4a";x.fillRect(0,0,W,150);
+ x.fillStyle="#fff";x.textAlign="center";x.textBaseline="middle";
+  const d=new Date().toLocaleDateString("es-UY",{weekday:"long",day:"numeric",month:"long"});
+ x.font="600 46px "+F;x.fillText(d.charAt(0).toUpperCase()+d.slice(1),W/2,76);
+ const A=[],B=[];c.ids.forEach((id,i)=>(c.mask>>i&1?A:B).push(id));
+ const col=(ids,cx,title,bg,fg)=>{
+  x.fillStyle=bg;rr(x,cx-210,230,420,96,48);x.fill();
+  x.fillStyle=fg;x.font="800 50px "+F;x.fillText(title,cx,279);
+  const names=ids.map(id=>P[id].name+(gk.has(id)?" 🧤":"")).sort((a,b)=>a.localeCompare(b,"es"));
+  x.fillStyle="#17231a";
+  names.forEach((n,i)=>{let fs=52;do{x.font="600 "+fs+"px "+F;fs-=2}while(x.measureText(n).width>440&&fs>24);x.fillText(n,cx,410+i*100)});
+ };
+ col(A,W*0.27,"Equipo A","#ff5f00","#111");col(B,W*0.73,"Equipo B","#5f6b65","#fff");
+ x.strokeStyle="#cfd8ca";x.lineWidth=3;x.beginPath();x.moveTo(W/2,230);x.lineTo(W/2,890);x.stroke();
+ x.fillStyle="#5d6b60";x.font="500 30px "+F;x.fillText("Armado con Varadero I+D",W/2,1010);
+ return cv;
+}
+function exportImg(n,share){
+ const c=cands[n];if(!c)return;
+ drawImg(c).toBlob(async b=>{
+  const file=new File([b],"equipos-varadero.png",{type:"image/png"});
+  if(share&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:"Varadero"});return}catch(e){if(e&&e.name==="AbortError")return}}
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="equipos-varadero.png";document.body.appendChild(a);a.click();a.remove();
+  toast(share?"No se pudo compartir desde acá: descargué la imagen.":"Imagen descargada.");
+ },"image/png");
+}
+let CFG={script:"",token:""};
+const savedKeys=new Set();
+const candKey=c=>{const A=[],B=[];c.ids.forEach((id,i)=>(c.mask>>i&1?A:B).push(P[id].name));const f=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);return {f,A,B,key:f+"|"+[...A].sort().join(",")+"|"+[...B].sort().join(",")}};
+async function saveMatch(n,btn){
+ const c=cands[n];if(!c||!CFG.script)return;
+ const k=candKey(c);
+ if(savedKeys.has(k.key)){toast("Este partido ya está guardado.");return}
+ const o={f:k.f,a:k.A,b:k.B,g:[...gk].map(i=>P[i].name)};
+ if(btn){btn.disabled=true;btn.textContent="Guardando…"}
+ try{
+  const r=await fetch(CFG.script+"?action=add&token="+encodeURIComponent(CFG.token)+"&p="+encodeURIComponent(JSON.stringify(o)));
+  const d=await r.json();
+  if(!d.ok)throw new Error(d.error||"error");
+  savedKeys.add(k.key);toast(d.dup?"Ese partido ya estaba guardado en la hoja.":"Partido guardado en la hoja.");
+ }catch(e){toast("No se pudo guardar. Revisá tu conexión e intentá de nuevo.")}
+ if(btn){const ok=savedKeys.has(k.key);btn.disabled=ok;btn.textContent=ok?"✓ Guardado":"Guardar en historial"}
+}
+function show(keep){
+ const list=cands.slice(page*3,page*3+3);
+ {const vs=list.flatMap(c=>[...c.sa,...c.sb].filter((_,i)=>!/arquer|total/i.test(K[i%K.length])));const mn=Math.min(...vs),mx=Math.max(...vs);LO=mn-0.35*(mx-mn);HI=mx+0.03*(mx-mn)}
+ const SC=Math.max(2,...list.flatMap(c=>c.sa.map((x,j)=>Math.abs(x-c.sb[j]))));
+ {const vis=K.map((_,j)=>j).filter(j=>!/arquer|total/i.test(K[j]));const base=vis.reduce((a,j)=>a+list[0].tot[j]/2,0)/(vis.length||1);DSC=Math.max(1,0.1*base)}
+ const maxV=Math.max(...cands[0].tot.map((t,j)=>t));
+ $("out").innerHTML='<div class="row"><button class="'+(VIEW==="radar"?"":"ghost")+'" data-v="radar">Radar</button><button class="'+(VIEW==="duelo"?"":"ghost")+'" data-v="duelo">Duelo</button></div>'+list.map((c,ix)=>{
+  const A=[],B=[];
+  c.ids.forEach((id,i)=>(c.mask>>i&1?A:B).push(P[id]));
+  const VV=K.map((_,j)=>j).filter(j=>!/arquer|total/i.test(K[j])),nv=VV.length||1;
+  const sa=VV.reduce((a,j)=>a+c.sa[j],0)/nv,sb=VV.reduce((a,j)=>a+c.sb[j],0)/nv;
+  const li=t=>t.slice().sort((x,y)=>avg(y)-avg(x)).map(p=>`<li>${esc(p.name)}${gk.has(P.indexOf(p))?" 🧤":""}</li>`).join("");
+  const bars=K.map((kk,j)=>{
+   const d=c.sa[j]-c.sb[j],w=Math.min(50,Math.abs(d)/SC*50);
+   const bar=Math.abs(d)<0.05?"":`<i class="${d>0?"ia":"ib"}" style="width:${w}%"></i>`;
+   return `<div class="bar"><span class="lb">${esc(kk)}</span><div class="dv">${bar}</div></div>`;
+  }).join("");
+  const useR=VIEW==="radar"&&K.filter(k=>!/arquer|total/i.test(k)).length>=3,rad=useR?radar(c):"",useD=VIEW==="duelo",dum=useD?duel(c):"";
+  const diff=Math.abs(sa-sb);
+  const fd=c.sa[c.fj]-c.sb[c.fj];
+  const fnote="";
+  const n=page*3+ix;
+  return `<div class="alt${chosen===n?" chosen":""}"><header><span>Opción ${page*3+ix+1}</span></header>
+  <div class="teams"><div class="team A"><h3>Equipo A</h3><ul>${li(A)}</ul><div class="tot">Total ${sa.toFixed(1)}</div></div>
+  <div class="team B"><h3>Equipo B</h3><ul>${li(B)}</ul><div class="tot">Total ${sb.toFixed(1)}</div></div></div>
+  <div class="sk">${useR?rad:useD?dum:`${bars}`}</div>${fnote}
+  <div class="foot">${chosen===n?`<div class="row" style="margin:0"><button data-share="${n}">Compartir imagen</button><button class="ghost" data-save="${n}">Descargar</button>${CFG.script?`<button class="ghost" data-hist="${n}"${savedKeys.has(candKey(c).key)?" disabled":""}>${savedKeys.has(candKey(c).key)?"✓ Guardado":"Guardar en historial"}</button>`:""}</div>`:`<button class="ghost" data-pick="${n}">Elegir esta opción</button>`}</div></div>`;
+ }).join("");
+ if(!keep)$("out").scrollIntoView({behavior:"smooth",block:"start"});
+}
+$("go").onclick=build;
+$("out").addEventListener("click",e=>{const t=e.target;
+ const v=t.closest("[data-v]");if(v){VIEW=v.dataset.v;show(true);return}
+ const p=t.closest("[data-pick]");if(p){chosen=+p.dataset.pick;show(true);return}
+ const sh=t.closest("[data-share]");if(sh){exportImg(+sh.dataset.share,true);return}
+ const hi=t.closest("[data-hist]");if(hi){saveMatch(+hi.dataset.hist,hi);return}
+ const sv=t.closest("[data-save]");if(sv)exportImg(+sv.dataset.save,false);
+});
+$("q").addEventListener("input",render);
+const fromJson=()=>fetch("jugadores.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{apply(d.cols,d.players,d);$("msg").textContent=""});
+const msgErr=()=>{$("msg").textContent="No se pudieron cargar los jugadores. Avisale al administrador.";$("msg").className="err"};
+fetch("config.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).catch(()=>({})).then(c=>{
+ CFG={script:((c&&c.script)||"").trim(),token:((c&&c.token)||"").trim()};
+ if(!CFG.script)return fromJson().catch(msgErr);
+ return fetch(CFG.script+"?action=base&token="+encodeURIComponent(CFG.token),{cache:"no-store"}).then(r=>r.json()).then(d=>{
+  if(!d.ok)throw d.error||0;
+  if(!d.players||!d.players.length)throw "La hoja no tiene jugadores.";
+  apply(d.cols,d.players,d);$("msg").textContent="";store("f5base",JSON.stringify(d));
+ }).catch(e=>{
+  console.error("Varadero: no se pudo leer la hoja:",e);
+  const raw=typeof e==="string"?e:((e&&e.message)||"");
+  const why=typeof e==="string"?e:(/JSON|Unexpected token|<!DOCTYPE/i.test(raw)?"la dirección del script no devolvió datos: revisá que sea la URL /exec y que el acceso sea \"Cualquier persona\"":(/fetch|network|load failed/i.test(raw)?"el navegador no pudo conectar con Google":(raw||"sin respuesta")));
+  let c2=null;try{c2=JSON.parse(fetchS("f5base")||"null")}catch(x){}
+  if(c2&&c2.cols){apply(c2.cols,c2.players,c2);$("msg").textContent="";toast("Sin conexión con la hoja: uso la última copia guardada.");return}
+  return fromJson().then(()=>{$("msg").textContent="⚠ No se pudo leer la hoja ("+why+"). Se muestran los jugadores de respaldo.";$("msg").className="err"}).catch(msgErr);
+ });
+});
+</script>
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
+</script>
+</body>
+</html>
