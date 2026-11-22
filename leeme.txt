@@ -14,7 +14,7 @@ CONFIGURACIÓN (una sola vez)
 1. Subí google/plantilla-hoja.xlsx a Google Drive y abrila con Google Sheets (o creá una hoja con 3 pestañas
    con estos nombres exactos: Jugadores, Partidos, Ajustes).
    - Jugadores: nombre | habilidades... | total (con fórmula =SUMA(B2:D2) en cada fila).
-   - Partidos: fecha | equipo_a | equipo_b | goles_a | goles_b | arqueros | registrado.
+   - Partidos: fecha | equipo_a | equipo_b | goles_a | goles_b | arqueros | registrado | mvp | puntajes_a | puntajes_b.
    - Ajustes: columna_fisico = físico  y  ventaja = 0,5.
 2. En la hoja: Extensiones > Apps Script. Borrá lo que haya, pegá el contenido de google/apps-script.gs,
    cambiá CAMBIAR-POR-UNA-CLAVE por una clave tuya y guardá.
@@ -27,6 +27,17 @@ USO DIARIO
 - Partidos: en la app, elegí una opción y tocá "Guardar en historial". Aparece una fila nueva en la pestaña Partidos.
   Después cargá los goles (goles_a y goles_b) en la hoja.
 - Si cambiás el código del script, hay que publicar una versión nueva: Implementar > Administrar implementaciones > Editar > Versión nueva.
+
+ESTADÍSTICAS
+- La app tiene una pestaña "Estadísticas" que se calcula con la pestaña Partidos:
+  partidos jugados, ganados-empatados-perdidos, % de victorias, diferencia de goles, nota promedio, MVP,
+  últimos resultados y, por jugador, mejor dupla, compañero más frecuente y "bestia negra".
+- mvp: uno o más nombres separados por " / " (MVP compartido).
+- puntajes_a / puntajes_b: una nota por jugador, en el mismo orden que equipo_a / equipo_b, separadas por " / ".
+  Usá "-" para quien no tiene nota. Si la cantidad de notas no coincide con la de jugadores, esa fila se ignora para las notas.
+- Los partidos sin goles cargados cuentan como jugados, pero no para G-E-P ni % de victorias.
+- Los nombres tienen que escribirse igual en todas las filas (ej. "Mati" y "MatidelCAP" cuentan como dos jugadores).
+- Para activarla hay que publicar una versión nueva del script (ver USO DIARIO).
 
 PASAR LO ANTERIOR A LA HOJA
 - Jugadores: pegá tu CSV en la pestaña Jugadores.

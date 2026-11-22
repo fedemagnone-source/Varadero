@@ -60,20 +60,41 @@ function leerBase() {
   };
 }
 
-// Historial para las estadísticas: un objeto por fila de la pestaña Partidos
+// Historial para las estadísticas. Las columnas se buscan por su encabezado:
+// fecha | equipo_a | equipo_b | goles_a | goles_b | arqueros | registrado | mvp | puntajes_a | puntajes_b
 function leerPartidos() {
   const h = SpreadsheetApp.getActive().getSheetByName("Partidos");
   if (!h) return [];
   const v = h.getDataRange().getValues();
-  const gol = function (x) { return x === "" || x === null || isNaN(Number(x)) ? null : Number(x); };
+  if (v.length < 2) return [];
+  const enc = v[0].map(function (c) { return String(c).trim().toLowerCase(); });
+  const col = function (n, def) { const i = enc.indexOf(n); return i >= 0 ? i : def; };
+  const C = { f: col("fecha", 0), a: col("equipo_a", 1), b: col("equipo_b", 2), ga: col("goles_a", 3), gb: col("goles_b", 4),
+    g: col("arqueros", 5), mvp: col("mvp", -1), pa: col("puntajes_a", -1), pb: col("puntajes_b", -1) };
+  const cel = function (r, i) { return i >= 0 && i < r.length ? r[i] : ""; };
+  const num = function (x) {
+    if (x === "" || x === null) return null;
+    const n = Number(String(x).replace(",", "."));
+    return isNaN(n) ? null : n;
+  };
+  const notas = function (x, n) {
+    const l = String(x || "").split(/\s*\/\s*/).map(function (t) { return num(t.trim()); });
+    if (!String(x || "").trim() || l.length !== n) return null;
+    return l;
+  };
   const out = [];
   for (let i = 1; i < v.length; i++) {
-    if (!v[i][0]) continue;
-    const a = lista(v[i][1]), b = lista(v[i][2]);
+    const r = v[i];
+    if (!r[C.f]) continue;
+    const a = lista(cel(r, C.a)), b = lista(cel(r, C.b));
     if (!a.length || !b.length) continue;
-    let ga = gol(v[i][3]), gb = gol(v[i][4]);
+    let ga = num(cel(r, C.ga)), gb = num(cel(r, C.gb));
     if (ga === null || gb === null) ga = gb = null;
-    out.push({ f: fechaISO(v[i][0]), a: a, b: b, ga: ga, gb: gb, g: lista(v[i][5] || "") });
+    out.push({
+      f: fechaISO(r[C.f]), a: a, b: b, ga: ga, gb: gb,
+      g: lista(cel(r, C.g) || ""), mvp: lista(cel(r, C.mvp) || ""),
+      pa: notas(cel(r, C.pa), a.length), pb: notas(cel(r, C.pb), b.length)
+    });
   }
   return out;
 }
