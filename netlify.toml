@@ -1,4 +1,5 @@
 # Varadero App es un sitio de archivos listos: no necesita construcción.
+# Netlify publica solo la carpeta app/ (la planilla, el script y el leeme no quedan públicos).
 [build]
   command = ""
-  publish = "."
+  publish = "app"

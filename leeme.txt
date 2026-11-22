@@ -1,14 +1,21 @@
 Varadero App (PWA) - base y historial en Google Sheets
 
 ARCHIVOS
-- index.html            App pública (elige 10 jugadores y arma equipos).
-- config.json           Conexión con la hoja de Google (url del script + clave). Se completa una sola vez.
-- jugadores.json        Copia de respaldo de la base. Solo se usa si no hay conexión con la hoja ni copia guardada.
-- admin.html            Panel anterior, solo para exportar lo que se haya guardado antes en el navegador.
-- google/apps-script.gs Código que se pega en la hoja de Google (Extensiones > Apps Script).
-- google/plantilla-hoja.xlsx  Plantilla con las 3 pestañas (Jugadores, Partidos, Ajustes).
-- netlify.toml          Le indica a Netlify que no hay nada que construir (publica los archivos tal cual).
-- manifest.webmanifest, sw.js, icons/   Instalación y funcionamiento sin internet.
+- app/                  Lo que se publica en Netlify (solo esta carpeta):
+  - index.html          App pública (elige 10 jugadores, arma equipos y muestra estadísticas).
+  - config.json         Conexión con la hoja de Google (url del script + clave). Se completa una sola vez.
+  - jugadores.json      Copia de respaldo de la base. Solo se usa si no hay conexión con la hoja ni copia guardada.
+  - admin.html          Panel anterior, solo para exportar lo que se haya guardado antes en el navegador.
+  - manifest.webmanifest, sw.js, icons/   Instalación y funcionamiento sin internet.
+- apps-script.gs        Código que se pega en la hoja de Google (Extensiones > Apps Script).
+- plantilla-hoja.xlsx   Plantilla vacía con las 3 pestañas (Jugadores, Partidos, Ajustes).
+- netlify.toml          Le indica a Netlify que publique solo la carpeta app/ sin construir nada.
+  Así la planilla, el script y este archivo no quedan públicos en la web.
+
+PUBLICACIÓN AUTOMÁTICA (Netlify conectado a GitHub)
+- Netlify > el sitio > Project configuration > Build & deploy > Continuous deployment > Link repository:
+  elegí GitHub, el repositorio Varadero y la rama main. Netlify toma el resto de netlify.toml.
+- Desde ahí, cada cambio que entra en main se publica solo en un minuto. No hace falta subir carpetas.
 
 CONFIGURACIÓN (una sola vez)
 1. Subí google/plantilla-hoja.xlsx a Google Drive y abrila con Google Sheets (o creá una hoja con 3 pestañas
@@ -20,7 +27,7 @@ CONFIGURACIÓN (una sola vez)
    cambiá CAMBIAR-POR-UNA-CLAVE por una clave tuya y guardá.
 3. Implementar > Nueva implementación > tipo "Aplicación web". Ejecutar como: Yo. Quién tiene acceso: Cualquier persona.
    Implementar, autorizar los permisos y copiar la URL que termina en /exec.
-4. Editá config.json: poné la URL en "script" y la clave en "token". Subí la carpeta a Netlify (Deploys).
+4. Editá app/config.json: poné la URL en "script" y la clave en "token".
 
 USO DIARIO
 - Jugadores: se editan directo en la pestaña Jugadores de la hoja. La app los toma cada vez que se abre.
@@ -46,4 +53,4 @@ PASAR LO ANTERIOR A LA HOJA
 
 IMPORTANTE
 - La URL del script y la clave quedan visibles en el código de la app (config.json). Sirven para limitar el uso casual, no son secretas.
-- Si cambiás index.html, cambiá el nombre de la caché en sw.js (varadero-v35 > varadero-v36).
+- Si cambiás app/index.html, cambiá el nombre de la caché en app/sw.js (varadero-v35 > varadero-v36).
