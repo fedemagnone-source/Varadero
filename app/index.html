@@ -114,7 +114,7 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .vban{display:flex;align-items:center;justify-content:space-between;gap:10px;background:color-mix(in srgb,var(--a) 12%,var(--card));border:1px solid var(--a);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:.92rem}
 .vban[hidden]{display:none}.vban button{flex:none}
 .vwho{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:8px}
-.vwho button{text-align:left}.vwho small{color:var(--ok);font-weight:700}
+.vwho button{text-align:left}.vwho button:disabled{opacity:.6;cursor:not-allowed}.vwho small{color:var(--ok);font-weight:700}
 .vt{font:700 .95rem Georgia,serif;margin:16px 0 2px}.vt.A{color:var(--a)}.vt.B{color:var(--b)}
 .vr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid var(--line)}
 .vr .info{min-width:0;flex:1}.vr .n{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vr .n small{color:var(--mute);font-weight:400}
@@ -508,20 +508,20 @@ function renderVote(){
  if(VV&&!all.includes(VV))VV=null;
  const share=`<a class="btn" href="https://wa.me/?text=${encodeURIComponent("🗳 Votación del "+fjue(v.f)+": evalúe el rendimiento de cada jugador de 1 a 5. Se solicita seriedad y objetividad. "+voteUrl())}" target="_blank" rel="noopener">Compartir en WhatsApp</a>`;
  let h=VOT.length>1?`<div class="opt"><label>Partido <select data-vf>${VOT.map(x=>`<option value="${x.f}"${x.f===VF?" selected":""}>${esc(fdl(x.f))}</option>`).join("")}</select></label></div>`:"";
- const intro=`<p>Está recibiendo esta votación por haber sido parte del ${esc(fjue(v.f))}.</p><p>A los efectos de retroalimentar la Varadero App, evalúe el rendimiento de cada jugador respecto de su juego habitual, de acuerdo a los siguientes criterios:</p>${critList()}<p>Se solicita seriedad y objetividad en el puntaje.</p><p class="hint">Si usted no es asiduo a Varadero y no conoce el rendimiento habitual de cada jugador, el puntaje debe referir a su impresión del juego de cada uno.</p>`;
+ const intro=`<p>Está recibiendo esta votación por haber sido parte del ${esc(fjue(v.f))}.</p><p>A los efectos de retroalimentar la Varadero App, evalúe el rendimiento de cada jugador respecto de su juego habitual, de acuerdo a los siguientes criterios:</p>${critList()}<p>Se solicita seriedad y objetividad en el puntaje.</p><p>🔒 La votación es anónima: no se guarda qué puntuó cada uno, solo los promedios. Cada uno vota una sola vez.</p><p class="hint">Si usted no es asiduo a Varadero y no conoce el rendimiento habitual de cada jugador, el puntaje debe referir a su impresión del juego de cada uno.</p>`;
  const plazo=`<p class="hint">La votación cierra el ${esc(fdl(v.cierra))} a la noche. El MVP es el de promedio más alto.</p>`;
  if(VDONE)h+=plazo;
  else if(!VV)h+=`<div class="vintro">${intro}</div>`+plazo;
  else h+=`<div class="vintro"><details><summary>Ver criterios de puntaje</summary><div style="margin-top:8px">${intro}</div></details></div>`+plazo;
  if(VDONE){
-  h+=`<p style="font-weight:700;color:var(--ok)">✓ Listo, ${esc(VV)}: tu voto quedó guardado.</p><p class="hint">Votaron ${v.votaron.length} de ${all.length}${v.votaron.length?": "+esc(v.votaron.join(", ")):""}. Si querés cambiar algo, podés votar de nuevo y vale el último voto.</p><div class="row"><button data-vagain class="ghost">Votar de nuevo</button>${share}</div>`;
+  h+=`<p style="font-weight:700;color:var(--ok)">✓ Listo, ${esc(VV)}: tu voto quedó guardado.</p><p class="hint">Votaron ${v.votaron.length} de ${all.length}${v.votaron.length?": "+esc(v.votaron.join(", ")):""}. ¿Falta alguien? Avisale al grupo:</p><div class="row">${share}</div>`;
  }else if(!VV){
-  h+=`<h3 class="vt">¿Quién sos?</h3><div class="vwho">${all.slice().sort((x,y)=>x.localeCompare(y,"es")).map(n=>`<button class="ghost" data-vv="${esc(n)}">${esc(n)}${v.votaron.includes(n)?" <small>✓ votó</small>":""}</button>`).join("")}</div>
+  h+=`<h3 class="vt">¿Quién sos?</h3><div class="vwho">${all.slice().sort((x,y)=>x.localeCompare(y,"es")).map(n=>`<button class="ghost" data-vv="${esc(n)}"${v.votaron.includes(n)?" disabled":""}>${esc(n)}${v.votaron.includes(n)?" <small>✓ votó</small>":""}</button>`).join("")}</div>
   <p class="hint" style="margin-top:14px">Votaron ${v.votaron.length} de ${all.length}. ¿Falta alguien?</p>${share}`;
  }else{
   const k=all.filter(n=>VN[n]).length;
   h+=`<div class="trow" style="margin-top:4px"><span>Votás como <b>${esc(VV)}</b></span><button class="ghost" data-vv="">No soy yo</button></div>`;
-  if(v.votaron.includes(VV))h+=`<p class="hint">Ya votaste: si votás de nuevo, se reemplaza tu voto anterior.</p>`;
+  if(v.votaron.includes(VV)){h+=`<p style="font-weight:700;color:var(--ok)">✓ Ya votaste en esta votación.</p><p class="hint">Cada uno vota una sola vez. Votaron ${v.votaron.length} de ${all.length}.</p><div class="row">${share}</div>`;b.innerHTML=h;return}
   [["Equipo A",v.a,"A"],["Equipo B",v.b,"B"]].forEach(([t,l,c])=>{
    h+=`<h3 class="vt ${c}">${t}</h3>`+l.map(n=>`<div class="vr"><span class="info"><span class="n">${esc(n)}${n===VV?" <small>(vos)</small>":""}</span>${VN[n]?`<span class="cr">${VN[n]} · ${CRIT[VN[n]-1]}</span>`:""}</span><span class="stars" role="group" aria-label="Puntaje para ${esc(n)}">${[1,2,3,4,5].map(x=>`<button class="${VN[n]===x?"on":""}" data-vp="${esc(n)}" data-vs="${x}" aria-pressed="${VN[n]===x}" aria-label="${x} para ${esc(n)}: ${CRIT[x-1]}" title="${CRIT[x-1]}">${x}</button>`).join("")}</span></div>`).join("");
   });
@@ -532,10 +532,9 @@ function renderVote(){
 $("vote").addEventListener("click",e=>{
  const t=e.target;
  if(t.closest("[data-vclose]")){setTab(PREV);window.scrollTo(0,0);return}
- const w=t.closest("[data-vv]");if(w){VV=w.dataset.vv||null;VN={};if(VV)store("vvname",VV);renderVote();if(VV)window.scrollTo(0,0);return}
+ const w=t.closest("[data-vv]");if(w){VV=w.dataset.vv||null;VN={};store("vvname",VV||"");renderVote();if(VV)window.scrollTo(0,0);return}
  const s=t.closest("[data-vp]");if(s){VN[s.dataset.vp]=+s.dataset.vs;renderVote();return}
- if(t.closest("[data-vagain]")){VDONE=false;VN={};renderVote();return}
- const go=t.closest("[data-vsend]");if(go)sendVote(go);
+  const go=t.closest("[data-vsend]");if(go)sendVote(go);
 });
 $("vote").addEventListener("change",e=>{if(e.target.matches("[data-vf]")){VF=e.target.value;VN={};VDONE=false;renderVote()}});
 async function sendVote(btn){
@@ -544,9 +543,9 @@ async function sendVote(btn){
   const r=await fetch(CFG.script+"?action=votar&token="+encodeURIComponent(CFG.token)+"&p="+encodeURIComponent(JSON.stringify({f:VF,v:VV,n:VN})));
   const d=await r.json();
   if(!d.ok){toast(d.error||"No se pudo guardar el voto.");btn.disabled=false;btn.textContent="Enviar voto";return}
-  toast(d.reemplazo?"Voto actualizado. ¡Gracias!":"¡Gracias! Tu voto quedó guardado.");
+  toast("¡Gracias! Tu voto quedó guardado.");
   VDONE=true;VN={};
-  const v=VOT.find(x=>x.f===VF);if(v&&!v.votaron.includes(VV))v.votaron.push(VV);
+  const v=VOT.find(x=>x.f===VF);if(v)v.votaron=Array.isArray(d.votaron)?d.votaron:v.votaron.concat(v.votaron.includes(VV)?[]:[VV]);
   refreshVotes();renderVote();window.scrollTo(0,0);
  }catch(e){toast("No se pudo enviar. Revisá tu conexión e intentá de nuevo.");btn.disabled=false;btn.textContent="Enviar voto"}
 }

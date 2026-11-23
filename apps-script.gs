@@ -1,7 +1,6 @@
 /**
  * Varadero App - conexión con Google Sheets
  * La hoja necesita 3 pestañas con estos nombres exactos: Jugadores, Partidos y Ajustes.
- * La pestaña Votos se crea sola la primera vez que alguien vota.
  */
 
 // Cambiá esta clave por una propia (la misma va en config.json)
@@ -146,9 +145,12 @@ function agregarPartido(o) {
 
 // ---------- Votación de puntajes ----------
 // El día siguiente al partido se abre una votación de VOTO_DIAS días. Cada jugador del partido
-// elige su nombre y puntúa a los 10 jugadores de 1 a 5 (si vuelve a votar, vale el último voto).
-// Al cerrar se escriben en la pestaña Partidos los promedios (puntajes_a / puntajes_b) y el MVP
-// (el promedio más alto; si hay empate, todos los empatados). Si nadie votó, la fila queda igual.
+// elige su nombre y puntúa a los 10 jugadores de 1 a 5. Cada uno vota una sola vez.
+// ANONIMATO: no se guarda qué votó cada uno. Mientras la votación está abierta solo se guardan,
+// en las propiedades del script (no en la hoja), la suma y la cantidad de votos de cada jugador
+// y la lista de quiénes ya votaron. Al cerrar se escriben en Partidos los promedios
+// (puntajes_a / puntajes_b) y el MVP (promedio más alto; si hay empate, todos los empatados),
+// y esos datos se borran. Si nadie votó, la fila queda igual.
 // La votación se cierra sola la próxima vez que alguien abre la app después del plazo.
 // Opcional: Activadores > Agregar activador > cerrarVotaciones, cada hora, para cerrarla sin esperar.
 const VOTO_DIAS = 2;
@@ -175,33 +177,14 @@ function tablaPartidos() {
   return { h: h, v: v, C: C };
 }
 
-function hojaVotos() {
-  const ss = SpreadsheetApp.getActive();
-  let h = ss.getSheetByName("Votos");
-  if (!h) {
-    h = ss.insertSheet("Votos");
-    h.appendRow(["fecha", "votante", "jugador", "puntaje", "momento"]);
-  }
-  return h;
+// Totales anónimos de una votación: { s: {jugador: suma}, c: {jugador: cantidad}, v: [quiénes votaron] }
+function claveVoto(f) { return "voto_" + f; }
+function leerTotales(f) {
+  const t = PropertiesService.getScriptProperties().getProperty(claveVoto(f));
+  return t ? JSON.parse(t) : { s: {}, c: {}, v: [] };
 }
 
-// Votos guardados: { "2026-11-20": { "Juan": { "Pelu": 4, ... }, ... } }
-function leerVotos() {
-  const h = SpreadsheetApp.getActive().getSheetByName("Votos");
-  const out = {};
-  if (!h) return out;
-  const v = h.getDataRange().getValues();
-  for (let i = 1; i < v.length; i++) {
-    if (!v[i][0] || !v[i][1] || !v[i][2]) continue;
-    const f = fechaISO(v[i][0]), vt = String(v[i][1]).trim();
-    out[f] = out[f] || {};
-    out[f][vt] = out[f][vt] || {};
-    out[f][vt][String(v[i][2]).trim()] = Number(v[i][3]);
-  }
-  return out;
-}
-
-// Estado de la fila i de Partidos: "abierta", "vencida" o "" (ya tiene puntajes o es muy vieja / futura)
+// Estado de la fila i de Partidos: "abierta", "vencida" o "" (ya tiene puntajes o es futura)
 function estadoFila(T, i, hoy) {
   const r = T.v[i];
   if (!r[T.C.f]) return "";
@@ -214,13 +197,13 @@ function estadoFila(T, i, hoy) {
 }
 
 function votacionesAbiertas() {
-  const T = tablaPartidos(), votos = leerVotos(), hoy = hoyISO(), out = [];
+  const T = tablaPartidos(), hoy = hoyISO(), out = [];
   for (let i = 1; i < T.v.length; i++) {
     if (estadoFila(T, i, hoy) !== "abierta") continue;
     const f = fechaISO(T.v[i][T.C.f]);
     const a = lista(T.v[i][T.C.a]), b = lista(T.v[i][T.C.b]);
     if (!a.length || !b.length) continue;
-    out.push({ f: f, a: a, b: b, votaron: Object.keys(votos[f] || {}), cierra: sumarDias(f, VOTO_DIAS) });
+    out.push({ f: f, a: a, b: b, votaron: leerTotales(f).v, cierra: sumarDias(f, VOTO_DIAS) });
   }
   return out;
 }
@@ -241,43 +224,37 @@ function votar(o) {
     const jug = lista(T.v[fila][T.C.a]).concat(lista(T.v[fila][T.C.b]));
     const votante = String(o.v).trim();
     if (jug.indexOf(votante) < 0) throw new Error(votante + " no jugó ese partido");
-    const filas = jug.map(function (p) {
+    const notas = jug.map(function (p) {
       const x = Number(o.n[p]);
       if (!(x >= 1 && x <= 5 && Math.round(x) === x)) throw new Error("Falta el puntaje de " + p + " (de 1 a 5)");
-      return [o.f, votante, p, x, new Date()];
+      return x;
     });
-    const h = hojaVotos();
-    const v = h.getDataRange().getValues();
-    let reemplazo = false;
-    for (let i = v.length - 1; i >= 1; i--) {
-      if (v[i][0] && fechaISO(v[i][0]) === o.f && String(v[i][1]).trim() === votante) { h.deleteRow(i + 1); reemplazo = true; }
-    }
-    const desde = Math.max(h.getLastRow(), 1) + 1;
-    h.getRange(desde, 1, filas.length, 1).setNumberFormat("@");
-    h.getRange(desde, 1, filas.length, 5).setValues(filas);
-    return { ok: true, reemplazo: reemplazo };
+    const t = leerTotales(o.f);
+    if (t.v.indexOf(votante) >= 0) throw new Error(votante + " ya votó en esta votación");
+    jug.forEach(function (p, k) { t.s[p] = (t.s[p] || 0) + notas[k]; t.c[p] = (t.c[p] || 0) + 1; });
+    t.v.push(votante);
+    PropertiesService.getScriptProperties().setProperty(claveVoto(o.f), JSON.stringify(t));
+    return { ok: true, votaron: t.v };
   } finally {
     lock.releaseLock();
   }
 }
 
-// Cierra las votaciones vencidas: escribe promedios y MVP en Partidos
+// Cierra las votaciones vencidas: escribe promedios y MVP en Partidos y borra los totales
 function cerrarVotaciones() {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
+    const props = PropertiesService.getScriptProperties();
     const T = tablaPartidos(), hoy = hoyISO();
-    let votos = null;
     for (let i = 1; i < T.v.length; i++) {
       if (estadoFila(T, i, hoy) !== "vencida") continue;
-      votos = votos || leerVotos();
-      const f = fechaISO(T.v[i][T.C.f]), vf = votos[f];
-      if (!vf || !Object.keys(vf).length) continue;
+      const f = fechaISO(T.v[i][T.C.f]);
+      if (!props.getProperty(claveVoto(f))) continue;
+      const t = leerTotales(f);
+      if (!t.v.length) { props.deleteProperty(claveVoto(f)); continue; }
       const a = lista(T.v[i][T.C.a]), b = lista(T.v[i][T.C.b]), prom = {};
-      a.concat(b).forEach(function (p) {
-        const l = Object.keys(vf).map(function (vt) { return vf[vt][p]; }).filter(function (x) { return x >= 1; });
-        prom[p] = l.length ? l.reduce(function (s, x) { return s + x; }, 0) / l.length : null;
-      });
+      a.concat(b).forEach(function (p) { prom[p] = t.c[p] ? t.s[p] / t.c[p] : null; });
       const txt = function (eq) {
         return eq.map(function (p) { return prom[p] === null ? "-" : String(Math.round(prom[p] * 100) / 100); }).join(" / ");
       };
@@ -289,6 +266,7 @@ function cerrarVotaciones() {
         const mx = Math.max.apply(null, vals.map(function (p) { return prom[p]; }));
         T.h.getRange(i + 1, T.C.mvp + 1).setValue(vals.filter(function (p) { return Math.abs(prom[p] - mx) < 1e-9; }).join(" / "));
       }
+      props.deleteProperty(claveVoto(f));
     }
   } finally {
     lock.releaseLock();
