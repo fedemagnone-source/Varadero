@@ -178,6 +178,9 @@ function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function fetchS(k){try{return localStorage.getItem(k)}catch(e){return null}}
 
 function apply(cols,out,cfg){
+ // ORDEN (y cualquier columna "orden") solo sirve para ordenar la hoja: no es una habilidad
+ const keep=cols.map((_,j)=>j).filter(j=>!/^orden$/i.test(String(cols[j]).trim()));
+ cols=keep.map(j=>cols[j]);out=out.map(p=>({...p,v:keep.map(j=>p.v[j])}));
  K=cols;P=out;M=cfg&&Array.isArray(cfg.partidos)?cfg.partidos:null;VOT=cfg&&Array.isArray(cfg.votaciones)?cfg.votaciones:[];
  sel=new Set(P.length<=10?P.map((_,i)=>i):[]);gk=new Set();
  $("fis").innerHTML=K.map((k,i)=>`<option value="${i}">${esc(k)}</option>`).join("");
@@ -471,9 +474,8 @@ function ficha(name,ms){
  h+=`<div class="box"><h3>Todos sus partidos, del primero al último</h3><div class="strip" role="img" aria-label="${s.g} ganados, ${s.e} empatados, ${s.p} perdidos, ${s.pj-s.jr} sin resultado">${mine.map(x=>`<i class="${x.r||"n"}" title="${fd(x.m.f)}: ${x.r?RW[x.r]:"sin resultado"}"></i>`).join("")}</div>
  <div class="lg" style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:.75rem"><span><i class="G"></i>ganado</span><span><i class="E"></i>empate</span><span><i class="P"></i>perdido</span><span><i style="background:var(--line)"></i>sin resultado</span></div></div>`;
  const duo=(t,o,txt,res)=>`<div><small>${t}</small>${res&&!F?`<span class="hint">Sin partidos con resultado</span>`:o?`<b>${esc(o.n)}</b> · ${txt(o)}`:`<span class="hint">Todavía no hay datos suficientes</span>`}</div>`;
- h+=`<div class="duo">${duo("Mejor dupla (más victorias juntos)",bt,o=>`${o.g} de ${o.j} ganados`,1)}${duo("Compañero más frecuente",freq,o=>`${o.j} partido${o.j>1?"s":""} juntos`)}${duo("Bestia negra (más derrotas en contra)",bn,o=>`${o.p} de ${o.j} perdidos`,1)}</div>`;
- h+=`<div class="box"><h3>Últimos partidos</h3><ul class="ml">${mine.slice().reverse().slice(0,10).map(x=>`<li><span>${fd(x.m.f)}</span>${x.has?`<span class="rb ${x.r}" title="${RW[x.r]}">${x.r}</span>`:`<span class="rb E" style="opacity:.5" title="sin resultado">?</span>`}<span class="who">${x.has?x.f+"–"+x.c+" · ":""}con ${esc(x.t.filter(n=>n!==name).join(", "))}</span><span>${x.mvp?'<span class="mvp" title="MVP">★ </span>':""}${x.nota!=null?f1(x.nota):""}</span></li>`).join("")}</ul></div>`;
- return h;
+ h+=`<div class="duo">${duo("Mejor dupla (más victorias juntos)",bt,o=>`${o.g} de ${o.j} ganados`,1)}${duo("Compañero más frecuente",freq,o=>`${o.j} partido${o.j>1?"s":""} juntos`)}${duo("Villano (más derrotas en contra)",bn,o=>`${o.p} de ${o.j} perdidos`,1)}</div>`;
+  return h;
 }
 $("stbody").addEventListener("click",e=>{
  const r=e.target.closest("[data-rk]");if(r){RK=r.dataset.rk;renderStats();return}
