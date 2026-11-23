@@ -439,12 +439,13 @@ function renderStats(){
 const RW={G:"ganado",E:"empatado",P:"perdido"};
 function ficha(name,ms){
  const mine=apps(ms).filter(x=>x.n===name),s0=table(ms).find(t=>t.name===name),s={...s0,pct:s0.jr?s0.g/s0.jr:null,dg:s0.gf-s0.gc},F=s.jr>0;
- const tm=new Map(),rv=new Map();
+ const tm=new Map(),rv=new Map(),all=new Map();   // tm y rv: solo partidos con resultado; all: todos (compañero más frecuente)
  const add=(mp,n,r)=>{if(!mp.has(n))mp.set(n,{n,j:0,g:0,p:0});const o=mp.get(n);o.j++;if(r==="G")o.g++;if(r==="P")o.p++};
  mine.filter(x=>x.has).forEach(x=>{x.t.forEach(n=>n!==name&&add(tm,n,x.r));x.o.forEach(n=>add(rv,n,x.r))});
- mine.filter(x=>!x.has).forEach(x=>x.t.forEach(n=>n!==name&&add(tm,n,null)));
- const best=(mp,k)=>[...mp.values()].filter(o=>o.j>=3).sort((x,y)=>y[k]/y.j-x[k]/x.j||y.j-x.j)[0];
- const freq=[...tm.values()].sort((x,y)=>y.j-x.j)[0],bt=best(tm,"g"),bn=best(rv,"p");
+ mine.forEach(x=>x.t.forEach(n=>n!==name&&add(all,n,null)));
+ // mejor dupla y villano: mínimo 5 partidos con resultado juntos / enfrentados
+ const best=(mp,k)=>[...mp.values()].filter(o=>o.j>=5).sort((x,y)=>y[k]/y.j-x[k]/x.j||y.j-x.j)[0];
+ const freq=[...all.values()].sort((x,y)=>y.j-x.j)[0],bt=best(tm,"g"),bn=best(rv,"p");
  const rs=s.res;let k=0;while(k<rs.length&&rs[rs.length-1-k]===rs[rs.length-1])k++;
  const lr=rs[rs.length-1],racha=rs.length?k+" "+(lr==="G"?(k>1?"ganados":"ganado"):lr==="P"?(k>1?"perdidos":"perdido"):(k>1?"empates":"empate")):"";
  const sub=[s.pj+" partidos",s.mvp?s.mvp+(s.mvp>1?" veces":" vez")+" MVP":"",s.arq?s.arq+" de arquero":"",F&&racha?"racha: "+racha:""].filter(Boolean).join(" · ");
@@ -473,7 +474,7 @@ function ficha(name,ms){
  }
  h+=`<div class="box"><h3>Todos sus partidos, del primero al último</h3><div class="strip" role="img" aria-label="${s.g} ganados, ${s.e} empatados, ${s.p} perdidos, ${s.pj-s.jr} sin resultado">${mine.map(x=>`<i class="${x.r||"n"}" title="${fd(x.m.f)}: ${x.r?RW[x.r]:"sin resultado"}"></i>`).join("")}</div>
  <div class="lg" style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:.75rem"><span><i class="G"></i>ganado</span><span><i class="E"></i>empate</span><span><i class="P"></i>perdido</span><span><i style="background:var(--line)"></i>sin resultado</span></div></div>`;
- const duo=(t,o,txt,res)=>`<div><small>${t}</small>${res&&!F?`<span class="hint">Sin partidos con resultado</span>`:o?`<b>${esc(o.n)}</b> · ${txt(o)}`:`<span class="hint">Todavía no hay datos suficientes</span>`}</div>`;
+ const duo=(t,o,txt,res)=>`<div><small>${t}</small>${res&&!F?`<span class="hint">Para que aparezcan datos, debe concurrir a más juernes.</span>`:o?`<b>${esc(o.n)}</b> · ${txt(o)}`:`<span class="hint">Para que aparezcan datos, debe concurrir a más juernes.</span>`}</div>`;
  h+=`<div class="duo">${duo("Mejor dupla (más victorias juntos)",bt,o=>`${o.g} de ${o.j} ganados`,1)}${duo("Compañero más frecuente",freq,o=>`${o.j} partido${o.j>1?"s":""} juntos`)}${duo("Villano (más derrotas en contra)",bn,o=>`${o.p} de ${o.j} perdidos`,1)}</div>`;
   return h;
 }
