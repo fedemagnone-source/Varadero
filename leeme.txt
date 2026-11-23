@@ -46,6 +46,20 @@ ESTADÍSTICAS
 - Los nombres tienen que escribirse igual en todas las filas (ej. "Mati" y "MatidelCAP" cuentan como dos jugadores).
 - Para activarla hay que publicar una versión nueva del script (ver USO DIARIO).
 
+VOTACIÓN DE PUNTAJES Y MVP
+- La votación se abre a las 23 h del día del partido (jueves) y cierra a las 00 h del lunes siguiente. La app muestra
+  un aviso "Votación abierta". El horario usa la zona horaria del proyecto de Apps Script (Configuración del proyecto).
+- Cada jugador de ese partido elige su nombre y puntúa a los 10 de 1 a 5 (5 es el mejor). Cada uno vota una sola vez.
+- Es anónima: no se guarda qué puntuó cada uno. Mientras está abierta, el script guarda solo la suma y la cantidad de
+  votos de cada jugador y quiénes ya votaron (en las propiedades del script, no en la hoja). Al cerrar, esos datos se borran.
+- Al cerrar, el script escribe en Partidos los promedios (puntajes_a / puntajes_b) y el MVP (el promedio más alto;
+  si hay empate, todos los empatados). Si nadie votó, la fila queda igual.
+- Solo se abre para partidos que todavía no tienen puntajes cargados. Si cargás los puntajes a mano, no se abre.
+- La votación se cierra la próxima vez que alguien abre la app después del plazo. Para que se cierre sola aunque
+  nadie abra la app: en Apps Script, Activadores > Agregar activador > cerrarVotaciones, basado en tiempo, cada hora.
+- Para compartir: botón "Compartir en WhatsApp" en la votación, o el link varadero.netlify.app/?votar
+- Se toma un partido por fecha: si hay dos partidos el mismo día, se vota el primero.
+
 PASAR LO ANTERIOR A LA HOJA
 - Jugadores: pegá tu CSV en la pestaña Jugadores.
 - Historial viejo: en admin.html > Ajustes > Historial > Descargar CSV, y pegá las filas en la pestaña Partidos

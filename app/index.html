@@ -111,6 +111,25 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .ml .who{color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:10px}
 .duo div{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.88rem}.duo small{display:block;color:var(--mute);font-size:.75rem}
+.vban{display:flex;align-items:center;justify-content:space-between;gap:10px;background:color-mix(in srgb,var(--a) 12%,var(--card));border:1px solid var(--a);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:.92rem}
+.vban[hidden]{display:none}.vban button{flex:none}
+.vwho{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:8px}
+.vwho button{text-align:left}.vwho button:disabled{opacity:.6;cursor:not-allowed}.vwho small{color:var(--ok);font-weight:700}
+.vt{font:700 .95rem Georgia,serif;margin:16px 0 2px}.vt.A{color:var(--a)}.vt.B{color:var(--b)}
+.vr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid var(--line)}
+.vr .info{min-width:0;flex:1}.vr .n{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vr .n small{color:var(--mute);font-weight:400}
+.vr .cr{display:block;font-size:.75rem;color:var(--ok);line-height:1.25;margin-top:1px}
+.vintro{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:.9rem}
+.vintro p{margin:0 0 8px}.vintro p:last-child{margin:0}
+.crit{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:4px}.crit li{display:flex;gap:8px;align-items:baseline}
+.crit b{flex:none;width:1.6em;height:1.6em;border-radius:6px;display:inline-grid;place-items:center;background:var(--ok);color:var(--card);font-size:.8rem}
+.vintro details summary{cursor:pointer;font-weight:600}
+.stars{display:flex;gap:4px;flex:none}
+.stars button{width:38px;height:38px;padding:0;border-radius:8px;background:transparent;color:var(--ink);border:1px solid var(--line);font-variant-numeric:tabular-nums}
+.stars button.on{background:var(--ok);border-color:var(--ok);color:var(--card)}
+.vfoot{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);margin:12px -16px -16px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:0 0 12px 12px}
+.vfoot button:disabled{opacity:.45;cursor:not-allowed}
+a.btn{display:inline-block;font-weight:600;font-size:.95rem;border-radius:8px;padding:9px 14px;text-decoration:none;color:var(--ink);border:1px solid var(--line)}
 .pie{margin-top:28px;text-align:center;font-size:.78rem;color:var(--mute);letter-spacing:.02em}
 </style>
 </head>
@@ -126,6 +145,7 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 </header>
 
 <p id="msg" class="hint">Cargando jugadores…</p>
+<div id="vban" class="vban" hidden></div>
 
 <section id="sel" hidden>
 <h2>¿Quiénes juegan hoy? <span class="hint" id="cnt"></span></h2>
@@ -136,6 +156,10 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 </section>
 
 <div id="out"></div>
+<section id="vote" hidden>
+<div class="trow"><h2 style="margin:0">Votación</h2><button class="ghost" data-vclose>Cerrar</button></div>
+<div id="vbody"></div>
+</section>
 <section id="stats" hidden>
 <h2>Estadísticas</h2>
 <div class="opt" style="margin-top:0"><label>Período <select id="per"></select></label></div>
@@ -154,7 +178,7 @@ function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function fetchS(k){try{return localStorage.getItem(k)}catch(e){return null}}
 
 function apply(cols,out,cfg){
- K=cols;P=out;M=cfg&&Array.isArray(cfg.partidos)?cfg.partidos:null;
+ K=cols;P=out;M=cfg&&Array.isArray(cfg.partidos)?cfg.partidos:null;VOT=cfg&&Array.isArray(cfg.votaciones)?cfg.votaciones:[];
  sel=new Set(P.length<=10?P.map((_,i)=>i):[]);gk=new Set();
  $("fis").innerHTML=K.map((k,i)=>`<option value="${i}">${esc(k)}</option>`).join("");
  let g=cfg&&cfg.fis!=null?K.indexOf(cfg.fis):-1;if(g<0)g=K.findIndex(k=>/f[ií]s|physic|stamina|resist/i.test(k));if(g>=0)$("fis").value=g;if(cfg&&cfg.bonus!=null)$("bonus").value=cfg.bonus;
@@ -336,10 +360,11 @@ $("q").addEventListener("input",render);
 const MIN_PJ=10,MIN_RES=20;
 let M=null,TAB="eq",RK="pj",DET=null;
 function setTab(t){
+ if(t!=="vo")PREV=t;
  TAB=t;const eq=t==="eq";
- $("sel").hidden=!eq;$("ctl").hidden=!eq;$("out").hidden=!eq;$("cnt2").hidden=!eq;$("stats").hidden=eq;
+ $("sel").hidden=!eq;$("ctl").hidden=!eq;$("out").hidden=!eq;$("cnt2").hidden=!eq;$("stats").hidden=t!=="st";$("vote").hidden=t!=="vo";
  document.querySelectorAll("[data-tab]").forEach(b=>{b.className=b.dataset.tab===t?"":"ghost";b.setAttribute("aria-pressed",b.dataset.tab===t)});
- if(!eq)renderStats();setHH();
+ if(t==="st")renderStats();if(t==="vo")renderVote();renderBanner();setHH();
 }
 $("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){setTab(b.dataset.tab);window.scrollTo(0,0)}});
 const fd=f=>{const m=String(f).match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+"/"+m[2]+"/"+m[1].slice(2):esc(f)};
@@ -456,6 +481,79 @@ $("stbody").addEventListener("click",e=>{
  const p=e.target.closest("[data-pl]");if(p){DET=p.dataset.pl;renderStats();$("stats").scrollIntoView({block:"start"})}
 });
 $("per").onchange=renderStats;
+/* ---------- votación de puntajes ---------- */
+// El script abre la votación a las 23 h del jueves del partido y la cierra a las 00 h del lunes.
+// Cada jugador del partido elige su nombre y puntúa a los 10 de 1 a 5.
+let VOT=[],PREV="eq",VF=null,VV=null,VN={},VDONE=false;
+const fdl=f=>{const d=new Date(f+"T12:00:00");const w=isNaN(d)?"":d.toLocaleDateString("es",{weekday:"long"});return (w?w+" ":"")+fd(f)};
+// "juernes 20/11/26" si el partido fue jueves; si no, "partido del domingo 22/11/26"
+const fjue=f=>{const d=new Date(f+"T12:00:00");return !isNaN(d)&&d.getDay()===4?"juernes "+fd(f):"partido del "+fdl(f)};
+const CRIT=["Una vergüenza, que se quede allá.","Se arrastró el 68% del tiempo, pero aparecieron chispazos.","De acuerdo a su rendimiento habitual, tuvo de las buenas y de las otras.","Por momentos parecía un jugador de fútbol.","Estaba drogado para bien."];
+const critList=()=>`<ol class="crit">${CRIT.map((c,i)=>`<li><b>${i+1}</b><span>${c}</span></li>`).join("")}</ol>`;
+const voteUrl=()=>location.origin+location.pathname+"?votar";
+function renderBanner(){
+ const b=$("vban");
+ if(!VOT.length||TAB==="vo"){b.hidden=true;return}
+ const v=VOT[0],n=v.a.length+v.b.length;
+ b.hidden=false;
+ b.innerHTML=`<span>🗳 <b>Votación abierta</b> · ${esc(fjue(v.f))} · votaron ${v.votaron.length} de ${n}</span><button data-vopen>Votar</button>`;
+}
+$("vban").addEventListener("click",e=>{if(e.target.closest("[data-vopen]")){VDONE=false;setTab("vo");window.scrollTo(0,0)}});
+function renderVote(){
+ const b=$("vbody");
+ if(!VOT.length){b.innerHTML='<p class="hint">No hay ninguna votación abierta en este momento. Se abre el jueves a las 23 h, después del partido, y cierra el domingo a la medianoche.</p>';return}
+ if(!VOT.some(v=>v.f===VF)){VF=VOT[0].f;VN={}}
+ const v=VOT.find(x=>x.f===VF),all=[...v.a,...v.b];
+ if(!VV){const s=fetchS("vvname");if(s&&all.includes(s))VV=s}
+ if(VV&&!all.includes(VV))VV=null;
+ const share=`<a class="btn" href="https://wa.me/?text=${encodeURIComponent("🗳 Votación del "+fjue(v.f)+": evalúe el rendimiento de cada jugador de 1 a 5. Se solicita seriedad y objetividad. "+voteUrl())}" target="_blank" rel="noopener">Compartir en WhatsApp</a>`;
+ let h=VOT.length>1?`<div class="opt"><label>Partido <select data-vf>${VOT.map(x=>`<option value="${x.f}"${x.f===VF?" selected":""}>${esc(fdl(x.f))}</option>`).join("")}</select></label></div>`:"";
+ const intro=`<p>Está recibiendo esta votación por haber sido parte del ${esc(fjue(v.f))}.</p><p>A los efectos de retroalimentar la Varadero App, evalúe el rendimiento de cada jugador respecto de su juego habitual, de acuerdo a los siguientes criterios:</p>${critList()}<p>Se solicita seriedad y objetividad en el puntaje.</p><p>🔒 La votación es anónima: no se guarda qué puntuó cada uno, solo los promedios. Cada uno vota una sola vez.</p><p class="hint">Si usted no es asiduo a Varadero y no conoce el rendimiento habitual de cada jugador, el puntaje debe referir a su impresión del juego de cada uno.</p>`;
+ const fin=(()=>{const d=new Date(v.cierra+"T12:00:00");d.setDate(d.getDate()-1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")})();
+ const plazo=`<p class="hint">La votación cierra el ${esc(fdl(fin))} a la medianoche. El MVP es el de promedio más alto.</p>`;
+ if(VDONE)h+=plazo;
+ else if(!VV)h+=`<div class="vintro">${intro}</div>`+plazo;
+ else h+=`<div class="vintro"><details><summary>Ver criterios de puntaje</summary><div style="margin-top:8px">${intro}</div></details></div>`+plazo;
+ if(VDONE){
+  h+=`<p style="font-weight:700;color:var(--ok)">✓ Listo, ${esc(VV)}: tu voto quedó guardado.</p><p class="hint">Votaron ${v.votaron.length} de ${all.length}${v.votaron.length?": "+esc(v.votaron.join(", ")):""}. ¿Falta alguien? Avisale al grupo:</p><div class="row">${share}</div>`;
+ }else if(!VV){
+  h+=`<h3 class="vt">¿Quién sos?</h3><div class="vwho">${all.slice().sort((x,y)=>x.localeCompare(y,"es")).map(n=>`<button class="ghost" data-vv="${esc(n)}"${v.votaron.includes(n)?" disabled":""}>${esc(n)}${v.votaron.includes(n)?" <small>✓ votó</small>":""}</button>`).join("")}</div>
+  <p class="hint" style="margin-top:14px">Votaron ${v.votaron.length} de ${all.length}. ¿Falta alguien?</p>${share}`;
+ }else{
+  const k=all.filter(n=>VN[n]).length;
+  h+=`<div class="trow" style="margin-top:4px"><span>Votás como <b>${esc(VV)}</b></span><button class="ghost" data-vv="">No soy yo</button></div>`;
+  if(v.votaron.includes(VV)){h+=`<p style="font-weight:700;color:var(--ok)">✓ Ya votaste en esta votación.</p><p class="hint">Cada uno vota una sola vez. Votaron ${v.votaron.length} de ${all.length}.</p><div class="row">${share}</div>`;b.innerHTML=h;return}
+  [["Equipo A",v.a,"A"],["Equipo B",v.b,"B"]].forEach(([t,l,c])=>{
+   h+=`<h3 class="vt ${c}">${t}</h3>`+l.map(n=>`<div class="vr"><span class="info"><span class="n">${esc(n)}${n===VV?" <small>(vos)</small>":""}</span>${VN[n]?`<span class="cr">${VN[n]} · ${CRIT[VN[n]-1]}</span>`:""}</span><span class="stars" role="group" aria-label="Puntaje para ${esc(n)}">${[1,2,3,4,5].map(x=>`<button class="${VN[n]===x?"on":""}" data-vp="${esc(n)}" data-vs="${x}" aria-pressed="${VN[n]===x}" aria-label="${x} para ${esc(n)}: ${CRIT[x-1]}" title="${CRIT[x-1]}">${x}</button>`).join("")}</span></div>`).join("");
+  });
+  h+=`<div class="vfoot"><span class="hint" style="margin:0">Puntuaste ${k} de ${all.length}</span><button data-vsend ${k<all.length?"disabled":""}>Enviar voto</button></div>`;
+ }
+ b.innerHTML=h;
+}
+$("vote").addEventListener("click",e=>{
+ const t=e.target;
+ if(t.closest("[data-vclose]")){setTab(PREV);window.scrollTo(0,0);return}
+ const w=t.closest("[data-vv]");if(w){VV=w.dataset.vv||null;VN={};store("vvname",VV||"");renderVote();if(VV)window.scrollTo(0,0);return}
+ const s=t.closest("[data-vp]");if(s){VN[s.dataset.vp]=+s.dataset.vs;renderVote();return}
+  const go=t.closest("[data-vsend]");if(go)sendVote(go);
+});
+$("vote").addEventListener("change",e=>{if(e.target.matches("[data-vf]")){VF=e.target.value;VN={};VDONE=false;renderVote()}});
+async function sendVote(btn){
+ btn.disabled=true;btn.textContent="Enviando…";
+ try{
+  const r=await fetch(CFG.script+"?action=votar&token="+encodeURIComponent(CFG.token)+"&p="+encodeURIComponent(JSON.stringify({f:VF,v:VV,n:VN})));
+  const d=await r.json();
+  if(!d.ok){toast(d.error||"No se pudo guardar el voto.");btn.disabled=false;btn.textContent="Enviar voto";return}
+  toast("¡Gracias! Tu voto quedó guardado.");
+  VDONE=true;VN={};
+  const v=VOT.find(x=>x.f===VF);if(v)v.votaron=Array.isArray(d.votaron)?d.votaron:v.votaron.concat(v.votaron.includes(VV)?[]:[VV]);
+  refreshVotes();renderVote();window.scrollTo(0,0);
+ }catch(e){toast("No se pudo enviar. Revisá tu conexión e intentá de nuevo.");btn.disabled=false;btn.textContent="Enviar voto"}
+}
+function refreshVotes(){
+ if(!CFG.script)return;
+ fetch(CFG.script+"?action=votacion&token="+encodeURIComponent(CFG.token),{cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.ok&&Array.isArray(d.votaciones)){VOT=d.votaciones;if(TAB==="vo")renderVote();renderBanner()}}).catch(()=>{});
+}
 const fromJson=()=>fetch("jugadores.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{apply(d.cols,d.players,d);$("msg").textContent=""});
 const msgErr=()=>{$("msg").textContent="No se pudieron cargar los jugadores. Avisale al administrador.";$("msg").className="err"};
 fetch("config.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).catch(()=>({})).then(c=>{
@@ -465,12 +563,13 @@ fetch("config.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).catch(()=>({})
   if(!d.ok)throw d.error||0;
   if(!d.players||!d.players.length)throw "La hoja no tiene jugadores.";
   apply(d.cols,d.players,d);$("msg").textContent="";store("f5base",JSON.stringify(d));
+  if(/[?&]votar\b/.test(location.search)&&VOT.length)setTab("vo");else renderBanner();
  }).catch(e=>{
   console.error("Varadero: no se pudo leer la hoja:",e);
   const raw=typeof e==="string"?e:((e&&e.message)||"");
   const why=typeof e==="string"?e:(/JSON|Unexpected token|<!DOCTYPE/i.test(raw)?"la dirección del script no devolvió datos: revisá que sea la URL /exec y que el acceso sea \"Cualquier persona\"":(/fetch|network|load failed/i.test(raw)?"el navegador no pudo conectar con Google":(raw||"sin respuesta")));
   let c2=null;try{c2=JSON.parse(fetchS("f5base")||"null")}catch(x){}
-  if(c2&&c2.cols){apply(c2.cols,c2.players,c2);$("msg").textContent="";toast("Sin conexión con la hoja: uso la última copia guardada.");return}
+  if(c2&&c2.cols){apply(c2.cols,c2.players,c2);VOT=[];renderBanner();$("msg").textContent="";toast("Sin conexión con la hoja: uso la última copia guardada.");return}
   return fromJson().then(()=>{$("msg").textContent="⚠ No se pudo leer la hoja ("+why+"). Se muestran los jugadores de respaldo.";$("msg").className="err"}).catch(msgErr);
  });
 });
