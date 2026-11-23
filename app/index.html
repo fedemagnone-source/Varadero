@@ -117,7 +117,13 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .vwho button{text-align:left}.vwho small{color:var(--ok);font-weight:700}
 .vt{font:700 .95rem Georgia,serif;margin:16px 0 2px}.vt.A{color:var(--a)}.vt.B{color:var(--b)}
 .vr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid var(--line)}
-.vr .n{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vr .n small{color:var(--mute);font-weight:400}
+.vr .info{min-width:0;flex:1}.vr .n{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vr .n small{color:var(--mute);font-weight:400}
+.vr .cr{display:block;font-size:.75rem;color:var(--ok);line-height:1.25;margin-top:1px}
+.vintro{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:.9rem}
+.vintro p{margin:0 0 8px}.vintro p:last-child{margin:0}
+.crit{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:4px}.crit li{display:flex;gap:8px;align-items:baseline}
+.crit b{flex:none;width:1.6em;height:1.6em;border-radius:6px;display:inline-grid;place-items:center;background:var(--ok);color:var(--card);font-size:.8rem}
+.vintro details summary{cursor:pointer;font-weight:600}
 .stars{display:flex;gap:4px;flex:none}
 .stars button{width:38px;height:38px;padding:0;border-radius:8px;background:transparent;color:var(--ink);border:1px solid var(--line);font-variant-numeric:tabular-nums}
 .stars button.on{background:var(--ok);border-color:var(--ok);color:var(--card)}
@@ -480,13 +486,17 @@ $("per").onchange=renderStats;
 // Cada jugador del partido elige su nombre y puntúa a los 10 de 1 a 5.
 let VOT=[],PREV="eq",VF=null,VV=null,VN={},VDONE=false;
 const fdl=f=>{const d=new Date(f+"T12:00:00");const w=isNaN(d)?"":d.toLocaleDateString("es",{weekday:"long"});return (w?w+" ":"")+fd(f)};
+// "juernes 20/11/26" si el partido fue jueves; si no, "partido del domingo 22/11/26"
+const fjue=f=>{const d=new Date(f+"T12:00:00");return !isNaN(d)&&d.getDay()===4?"juernes "+fd(f):"partido del "+fdl(f)};
+const CRIT=["Una vergüenza, que se quede allá.","Se arrastró el 68% del tiempo, pero aparecieron chispazos.","De acuerdo a su rendimiento habitual, tuvo de las buenas y de las otras.","Por momentos parecía un jugador de fútbol.","Estaba drogado para bien."];
+const critList=()=>`<ol class="crit">${CRIT.map((c,i)=>`<li><b>${i+1}</b><span>${c}</span></li>`).join("")}</ol>`;
 const voteUrl=()=>location.origin+location.pathname+"?votar";
 function renderBanner(){
  const b=$("vban");
  if(!VOT.length||TAB==="vo"){b.hidden=true;return}
  const v=VOT[0],n=v.a.length+v.b.length;
  b.hidden=false;
- b.innerHTML=`<span>🗳 <b>Votación abierta</b> · partido del ${esc(fdl(v.f))} · votaron ${v.votaron.length} de ${n}</span><button data-vopen>Votar</button>`;
+ b.innerHTML=`<span>🗳 <b>Votación abierta</b> · ${esc(fjue(v.f))} · votaron ${v.votaron.length} de ${n}</span><button data-vopen>Votar</button>`;
 }
 $("vban").addEventListener("click",e=>{if(e.target.closest("[data-vopen]")){VDONE=false;setTab("vo");window.scrollTo(0,0)}});
 function renderVote(){
@@ -496,9 +506,13 @@ function renderVote(){
  const v=VOT.find(x=>x.f===VF),all=[...v.a,...v.b];
  if(!VV){const s=fetchS("vvname");if(s&&all.includes(s))VV=s}
  if(VV&&!all.includes(VV))VV=null;
- const share=`<a class="btn" href="https://wa.me/?text=${encodeURIComponent("🗳 Votación del partido del "+fdl(v.f)+": puntuá a los jugadores de 1 a 5. "+voteUrl())}" target="_blank" rel="noopener">Compartir en WhatsApp</a>`;
+ const share=`<a class="btn" href="https://wa.me/?text=${encodeURIComponent("🗳 Votación del "+fjue(v.f)+": evalúe el rendimiento de cada jugador de 1 a 5. Se solicita seriedad y objetividad. "+voteUrl())}" target="_blank" rel="noopener">Compartir en WhatsApp</a>`;
  let h=VOT.length>1?`<div class="opt"><label>Partido <select data-vf>${VOT.map(x=>`<option value="${x.f}"${x.f===VF?" selected":""}>${esc(fdl(x.f))}</option>`).join("")}</select></label></div>`:"";
- h+=`<p class="hint">Partido del ${esc(fdl(v.f))}. La votación cierra el ${esc(fdl(v.cierra))} a la noche. Puntuá a los ${all.length} jugadores de 1 a 5 (5 es el mejor). El MVP es el de promedio más alto.</p>`;
+ const intro=`<p>Está recibiendo esta votación por haber sido parte del ${esc(fjue(v.f))}.</p><p>A los efectos de retroalimentar la Varadero App, evalúe el rendimiento de cada jugador respecto de su juego habitual, de acuerdo a los siguientes criterios:</p>${critList()}<p>Se solicita seriedad y objetividad en el puntaje.</p><p class="hint">Si usted no es asiduo a Varadero y no conoce el rendimiento habitual de cada jugador, el puntaje debe referir a su impresión del juego de cada uno.</p>`;
+ const plazo=`<p class="hint">La votación cierra el ${esc(fdl(v.cierra))} a la noche. El MVP es el de promedio más alto.</p>`;
+ if(VDONE)h+=plazo;
+ else if(!VV)h+=`<div class="vintro">${intro}</div>`+plazo;
+ else h+=`<div class="vintro"><details><summary>Ver criterios de puntaje</summary><div style="margin-top:8px">${intro}</div></details></div>`+plazo;
  if(VDONE){
   h+=`<p style="font-weight:700;color:var(--ok)">✓ Listo, ${esc(VV)}: tu voto quedó guardado.</p><p class="hint">Votaron ${v.votaron.length} de ${all.length}${v.votaron.length?": "+esc(v.votaron.join(", ")):""}. Si querés cambiar algo, podés votar de nuevo y vale el último voto.</p><div class="row"><button data-vagain class="ghost">Votar de nuevo</button>${share}</div>`;
  }else if(!VV){
@@ -509,7 +523,7 @@ function renderVote(){
   h+=`<div class="trow" style="margin-top:4px"><span>Votás como <b>${esc(VV)}</b></span><button class="ghost" data-vv="">No soy yo</button></div>`;
   if(v.votaron.includes(VV))h+=`<p class="hint">Ya votaste: si votás de nuevo, se reemplaza tu voto anterior.</p>`;
   [["Equipo A",v.a,"A"],["Equipo B",v.b,"B"]].forEach(([t,l,c])=>{
-   h+=`<h3 class="vt ${c}">${t}</h3>`+l.map(n=>`<div class="vr"><span class="n">${esc(n)}${n===VV?" <small>(vos)</small>":""}</span><span class="stars" role="group" aria-label="Puntaje para ${esc(n)}">${[1,2,3,4,5].map(x=>`<button class="${VN[n]===x?"on":""}" data-vp="${esc(n)}" data-vs="${x}" aria-pressed="${VN[n]===x}" aria-label="${x} para ${esc(n)}">${x}</button>`).join("")}</span></div>`).join("");
+   h+=`<h3 class="vt ${c}">${t}</h3>`+l.map(n=>`<div class="vr"><span class="info"><span class="n">${esc(n)}${n===VV?" <small>(vos)</small>":""}</span>${VN[n]?`<span class="cr">${VN[n]} · ${CRIT[VN[n]-1]}</span>`:""}</span><span class="stars" role="group" aria-label="Puntaje para ${esc(n)}">${[1,2,3,4,5].map(x=>`<button class="${VN[n]===x?"on":""}" data-vp="${esc(n)}" data-vs="${x}" aria-pressed="${VN[n]===x}" aria-label="${x} para ${esc(n)}: ${CRIT[x-1]}" title="${CRIT[x-1]}">${x}</button>`).join("")}</span></div>`).join("");
   });
   h+=`<div class="vfoot"><span class="hint" style="margin:0">Puntuaste ${k} de ${all.length}</span><button data-vsend ${k<all.length?"disabled":""}>Enviar voto</button></div>`;
  }
