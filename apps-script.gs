@@ -144,7 +144,8 @@ function agregarPartido(o) {
 }
 
 // ---------- Votación de puntajes ----------
-// El día siguiente al partido se abre una votación de VOTO_DIAS días. Cada jugador del partido
+// La votación se abre a las 23 h del día del partido (los jueves) y cierra a las 00 h del lunes siguiente,
+// en la zona horaria del proyecto (Apps Script > Configuración del proyecto > Zona horaria). Cada jugador del partido
 // elige su nombre y puntúa a los 10 jugadores de 1 a 5. Cada uno vota una sola vez.
 // ANONIMATO: no se guarda qué votó cada uno. Mientras la votación está abierta solo se guardan,
 // en las propiedades del script (no en la hoja), la suma y la cantidad de votos de cada jugador
@@ -153,10 +154,19 @@ function agregarPartido(o) {
 // y esos datos se borran. Si nadie votó, la fila queda igual.
 // La votación se cierra sola la próxima vez que alguien abre la app después del plazo.
 // Opcional: Activadores > Agregar activador > cerrarVotaciones, cada hora, para cerrarla sin esperar.
-const VOTO_DIAS = 2;
+const VOTO_ABRE = "23:00";   // hora de apertura, el mismo día del partido
 
-function hoyISO() {
-  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+// Fecha y hora actual como "2026-11-20 23:15" (se compara como texto)
+function ahora() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm");
+}
+// Lunes siguiente al partido (si el partido es jueves, 4 días después).
+// Si el partido no fuera jueves y el lunes quedara a menos de 3 días, se pasa al lunes de la semana siguiente.
+function lunesSiguiente(f) {
+  const dia = new Date(f + "T12:00:00Z").getUTCDay();   // 0 domingo … 4 jueves … 6 sábado
+  let n = (1 - dia + 7) % 7 || 7;
+  if (n < 3) n += 7;
+  return sumarDias(f, n);
 }
 function sumarDias(iso, n) {
   const d = new Date(iso + "T12:00:00Z");
@@ -191,19 +201,19 @@ function estadoFila(T, i, hoy) {
   if (String(r[T.C.pa]).trim() || String(r[T.C.pb]).trim()) return "";
   const f = fechaISO(r[T.C.f]);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(f)) return "";
-  if (hoy < sumarDias(f, 1)) return "";
-  if (hoy <= sumarDias(f, VOTO_DIAS)) return "abierta";
+  if (hoy < f + " " + VOTO_ABRE) return "";
+  if (hoy < lunesSiguiente(f) + " 00:00") return "abierta";
   return "vencida";
 }
 
 function votacionesAbiertas() {
-  const T = tablaPartidos(), hoy = hoyISO(), out = [];
+  const T = tablaPartidos(), hoy = ahora(), out = [];
   for (let i = 1; i < T.v.length; i++) {
     if (estadoFila(T, i, hoy) !== "abierta") continue;
     const f = fechaISO(T.v[i][T.C.f]);
     const a = lista(T.v[i][T.C.a]), b = lista(T.v[i][T.C.b]);
     if (!a.length || !b.length) continue;
-    out.push({ f: f, a: a, b: b, votaron: leerTotales(f).v, cierra: sumarDias(f, VOTO_DIAS) });
+    out.push({ f: f, a: a, b: b, votaron: leerTotales(f).v, cierra: lunesSiguiente(f) });
   }
   return out;
 }
@@ -214,7 +224,7 @@ function votar(o) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
-    const T = tablaPartidos(), hoy = hoyISO();
+    const T = tablaPartidos(), hoy = ahora();
     let fila = -1;
     for (let i = 1; i < T.v.length; i++) {
       if (T.v[i][T.C.f] && fechaISO(T.v[i][T.C.f]) === o.f) { fila = i; break; }
@@ -246,7 +256,7 @@ function cerrarVotaciones() {
   lock.waitLock(15000);
   try {
     const props = PropertiesService.getScriptProperties();
-    const T = tablaPartidos(), hoy = hoyISO();
+    const T = tablaPartidos(), hoy = ahora();
     for (let i = 1; i < T.v.length; i++) {
       if (estadoFila(T, i, hoy) !== "vencida") continue;
       const f = fechaISO(T.v[i][T.C.f]);

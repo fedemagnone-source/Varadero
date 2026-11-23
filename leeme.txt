@@ -47,7 +47,8 @@ ESTADÍSTICAS
 - Para activarla hay que publicar una versión nueva del script (ver USO DIARIO).
 
 VOTACIÓN DE PUNTAJES Y MVP
-- El día siguiente a cada partido se abre una votación que dura 2 días. La app muestra un aviso "Votación abierta".
+- La votación se abre a las 23 h del día del partido (jueves) y cierra a las 00 h del lunes siguiente. La app muestra
+  un aviso "Votación abierta". El horario usa la zona horaria del proyecto de Apps Script (Configuración del proyecto).
 - Cada jugador de ese partido elige su nombre y puntúa a los 10 de 1 a 5 (5 es el mejor). Cada uno vota una sola vez.
 - Es anónima: no se guarda qué puntuó cada uno. Mientras está abierta, el script guarda solo la suma y la cantidad de
   votos de cada jugador y quiénes ya votaron (en las propiedades del script, no en la hoja). Al cerrar, esos datos se borran.

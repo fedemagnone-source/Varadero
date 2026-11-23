@@ -482,7 +482,7 @@ $("stbody").addEventListener("click",e=>{
 });
 $("per").onchange=renderStats;
 /* ---------- votación de puntajes ---------- */
-// El script abre la votación el día siguiente al partido y la cierra a los 2 días.
+// El script abre la votación a las 23 h del jueves del partido y la cierra a las 00 h del lunes.
 // Cada jugador del partido elige su nombre y puntúa a los 10 de 1 a 5.
 let VOT=[],PREV="eq",VF=null,VV=null,VN={},VDONE=false;
 const fdl=f=>{const d=new Date(f+"T12:00:00");const w=isNaN(d)?"":d.toLocaleDateString("es",{weekday:"long"});return (w?w+" ":"")+fd(f)};
@@ -501,7 +501,7 @@ function renderBanner(){
 $("vban").addEventListener("click",e=>{if(e.target.closest("[data-vopen]")){VDONE=false;setTab("vo");window.scrollTo(0,0)}});
 function renderVote(){
  const b=$("vbody");
- if(!VOT.length){b.innerHTML='<p class="hint">No hay ninguna votación abierta en este momento. Se abre el día siguiente a cada partido y dura 2 días.</p>';return}
+ if(!VOT.length){b.innerHTML='<p class="hint">No hay ninguna votación abierta en este momento. Se abre el jueves a las 23 h, después del partido, y cierra el domingo a la medianoche.</p>';return}
  if(!VOT.some(v=>v.f===VF)){VF=VOT[0].f;VN={}}
  const v=VOT.find(x=>x.f===VF),all=[...v.a,...v.b];
  if(!VV){const s=fetchS("vvname");if(s&&all.includes(s))VV=s}
@@ -509,7 +509,8 @@ function renderVote(){
  const share=`<a class="btn" href="https://wa.me/?text=${encodeURIComponent("🗳 Votación del "+fjue(v.f)+": evalúe el rendimiento de cada jugador de 1 a 5. Se solicita seriedad y objetividad. "+voteUrl())}" target="_blank" rel="noopener">Compartir en WhatsApp</a>`;
  let h=VOT.length>1?`<div class="opt"><label>Partido <select data-vf>${VOT.map(x=>`<option value="${x.f}"${x.f===VF?" selected":""}>${esc(fdl(x.f))}</option>`).join("")}</select></label></div>`:"";
  const intro=`<p>Está recibiendo esta votación por haber sido parte del ${esc(fjue(v.f))}.</p><p>A los efectos de retroalimentar la Varadero App, evalúe el rendimiento de cada jugador respecto de su juego habitual, de acuerdo a los siguientes criterios:</p>${critList()}<p>Se solicita seriedad y objetividad en el puntaje.</p><p>🔒 La votación es anónima: no se guarda qué puntuó cada uno, solo los promedios. Cada uno vota una sola vez.</p><p class="hint">Si usted no es asiduo a Varadero y no conoce el rendimiento habitual de cada jugador, el puntaje debe referir a su impresión del juego de cada uno.</p>`;
- const plazo=`<p class="hint">La votación cierra el ${esc(fdl(v.cierra))} a la noche. El MVP es el de promedio más alto.</p>`;
+ const fin=(()=>{const d=new Date(v.cierra+"T12:00:00");d.setDate(d.getDate()-1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")})();
+ const plazo=`<p class="hint">La votación cierra el ${esc(fdl(fin))} a la medianoche. El MVP es el de promedio más alto.</p>`;
  if(VDONE)h+=plazo;
  else if(!VV)h+=`<div class="vintro">${intro}</div>`+plazo;
  else h+=`<div class="vintro"><details><summary>Ver criterios de puntaje</summary><div style="margin-top:8px">${intro}</div></details></div>`+plazo;
