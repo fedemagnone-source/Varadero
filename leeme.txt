@@ -38,7 +38,7 @@ USO DIARIO
 ESTADÍSTICAS
 - La app tiene una pestaña "Estadísticas" que se calcula con la pestaña Partidos:
   partidos jugados, ganados-empatados-perdidos, % de victorias, diferencia de goles, nota promedio, MVP,
-  últimos resultados y, por jugador, mejor dupla, compañero más frecuente y "bestia negra".
+  últimos resultados y, por jugador, mejor dupla, compañero más frecuente y "villano".
 - mvp: uno o más nombres separados por " / " (MVP compartido).
 - puntajes_a / puntajes_b: una nota por jugador, en el mismo orden que equipo_a / equipo_b, separadas por " / ".
   Usá "-" para quien no tiene nota. Si la cantidad de notas no coincide con la de jugadores, esa fila se ignora para las notas.
