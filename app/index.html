@@ -113,6 +113,11 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .duo div{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.88rem}.duo small{display:block;color:var(--mute);font-size:.75rem}
 .vban{display:flex;align-items:center;justify-content:space-between;gap:10px;background:color-mix(in srgb,var(--a) 12%,var(--card));border:1px solid var(--a);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:.92rem}
 .vban[hidden]{display:none}.vban button{flex:none}
+.vban.mvp{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,var(--card))}
+#pv{position:fixed;inset:0;z-index:60;background:rgba(10,15,12,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px}
+#pv[hidden]{display:none}
+#pv img{max-width:min(100%,420px);max-height:calc(100vh - 170px);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#pv .row{margin:0;justify-content:center}#pv .pw{background:#fff;color:#17231a}#pv .po{background:transparent;color:#fff;border:1px solid #fff}#pv .pc{background:none;color:#ccc;border:0}
 .vwho{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:8px}
 .vwho button{text-align:left}.vwho button:disabled{opacity:.6;cursor:not-allowed}.vwho small{color:var(--ok);font-weight:700}
 .vt{font:700 .95rem Georgia,serif;margin:16px 0 2px}.vt.A{color:var(--a)}.vt.B{color:var(--b)}
@@ -168,6 +173,7 @@ a.btn{display:inline-block;font-weight:600;font-size:.95rem;border-radius:8px;pa
 <footer class="pie">Un producto de la comisión I+D</footer>
 </main>
 <div id="toast" role="alert" aria-live="assertive"></div>
+<div id="pv" hidden role="dialog" aria-modal="true" aria-label="Vista previa de la imagen"><img alt=""><div class="row"><button class="pw" data-pvs>📤 Compartir</button><button class="po" data-pvd>⬇️ Descargar</button></div><button class="pc" data-pvc>Cerrar</button></div>
 <script>
 let P=[],K=[],sel=new Set(),gk=new Set(),cands=[],page=0;
 const $=id=>document.getElementById(id);
@@ -421,12 +427,13 @@ function renderStats(){
  if(DET){b.innerHTML=ficha(DET,ms);return}
  const wr=ms.filter(m=>m.ga!=null),gt=wr.reduce((a,m)=>a+m.ga+m.gb,0);
  let h=`<p class="sum">${ms.length} partidos${ms.length>wr.length?` (${ms.length-wr.length} sin resultado)`:""}${wr.length?` · ${f1(gt/wr.length)} goles por partido`:""}</p>
- <div class="chips" role="group" aria-label="Ranking">${RANKS.map(r=>`<button class="${r.k===RK?"":"ghost"}" data-rk="${r.k}" aria-pressed="${r.k===RK}">${r.l}</button>`).join("")}</div>`;
+ <div class="chips" role="group" aria-label="Ranking">${RANKS.map(r=>`<button class="${r.k===RK?"":"ghost"}" data-rk="${r.k}" aria-pressed="${r.k===RK}">${r.l}</button>`).join("")}<button class="ghost" data-share-rk style="margin-left:auto">📤 Compartir</button></div>`;
  const R=RANKS.find(r=>r.k===RK);
  const L=T.filter(R.ok).sort((x,y)=>R.v(y)-R.v(x)||y.pj-x.pj||x.name.localeCompare(y.name,"es"));
  if(!L.length){b.innerHTML=h+`<p class="hint">En este período nadie cumple el mínimo para este ranking.</p>`;return}
  // puesto compartido cuando hay empate
  L.forEach((s,i)=>s.rk=i&&R.v(s)===R.v(L[i-1])?L[i-1].rk:i+1);
+ LASTRK={R,L,per:sp.options[sp.selectedIndex]?sp.options[sp.selectedIndex].text:"Todo"};
  if(L.length>=3){
   const o=[[L[1],"p2"],[L[0],"p1"],[L[2],"p3"]];
   h+=`<div class="pod">${o.map(([s,c])=>`<button class="${c}" data-pl="${esc(s.name)}"><span class="av" aria-hidden="true">${esc(ini(s.name))}</span><span class="n">${esc(s.name)}</span><span class="v">${R.f(R.v(s))}</span><span class="blk">${s.rk}</span></button>`).join("")}</div>`;
@@ -479,6 +486,7 @@ function ficha(name,ms){
   return h;
 }
 $("stbody").addEventListener("click",e=>{
+ if(e.target.closest("[data-share-rk]")){if(LASTRK)preview(drawRanking(LASTRK),"ranking-varadero.png");return}
  const r=e.target.closest("[data-rk]");if(r){RK=r.dataset.rk;renderStats();return}
  if(e.target.closest("[data-back]")){DET=null;renderStats();$("stats").scrollIntoView({block:"start"});return}
  const p=e.target.closest("[data-pl]");if(p){DET=p.dataset.pl;renderStats();$("stats").scrollIntoView({block:"start"})}
@@ -495,13 +503,142 @@ const CRIT=["Una vergüenza, que se quede allá.","Se arrastró el 68% del tiemp
 const critList=()=>`<ol class="crit">${CRIT.map((c,i)=>`<li><b>${i+1}</b><span>${c}</span></li>`).join("")}</ol>`;
 const voteUrl=()=>location.origin+location.pathname+"?votar";
 function renderBanner(){
- const b=$("vban");
- if(!VOT.length||TAB==="vo"){b.hidden=true;return}
+ const b=$("vban");b.classList.remove("mvp");
+ if(TAB==="vo"){b.hidden=true;return}
+ if(!VOT.length){
+  const m=lastMvp();
+  if(!m){b.hidden=true;return}
+  const best=mvpList(m).find(x=>x.mvp);
+  b.hidden=false;b.classList.add("mvp");
+  b.innerHTML=`<span>⭐ <b>MVP del ${esc(fjue(m.f).replace(/^partido del /,""))}:</b> ${esc(m.mvp.join(" y "))}${best&&best.v!=null?" ("+f1(best.v)+")":""}</span><button data-mvpshare>Compartir</button>`;
+  return;
+ }
  const v=VOT[0],n=v.a.length+v.b.length;
  b.hidden=false;
  b.innerHTML=`<span>🗳 <b>Votación abierta</b> · ${esc(fjue(v.f))} · votaron ${v.votaron.length} de ${n}</span><button data-vopen>Votar</button>`;
 }
-$("vban").addEventListener("click",e=>{if(e.target.closest("[data-vopen]")){VDONE=false;setTab("vo");window.scrollTo(0,0)}});
+$("vban").addEventListener("click",e=>{
+ if(e.target.closest("[data-vopen]")){VDONE=false;setTab("vo");window.scrollTo(0,0);return}
+ if(e.target.closest("[data-mvpshare]")){const m=lastMvp();if(m)preview(drawMvp(m),"mvp-varadero.png")}
+});
+/* ---------- imágenes para compartir (1080 × 1350, se dibujan en el celular) ---------- */
+let LASTRK=null,PVC=null,PVN="";
+const C2={bg:"#eef2ea",card:"#fbfcf8",ink:"#17231a",mute:"#5d6b60",line:"#cfd8ca",a:"#ff5f00",b:"#5f6b65",ok:"#2f7d4f",loss:"#b83a2e",gold:"#b7791f",green:"#1f6f4a"};
+const FS2="'Trebuchet MS','Segoe UI',system-ui,sans-serif",FG2="Georgia,'Times New Roman',serif";
+// Último partido con MVP y puntajes, si todavía no pasó una semana (hasta el jueves siguiente a las 23 h)
+function lastMvp(){
+ if(!M)return null;
+ const c=M.filter(m=>(m.mvp||[]).length&&(m.pa||m.pb)&&/^\d{4}-\d{2}-\d{2}$/.test(m.f)).sort((x,y)=>String(y.f).localeCompare(String(x.f)))[0];
+ if(!c)return null;
+ const fin=new Date(c.f+"T23:00:00");fin.setDate(fin.getDate()+7);
+ return new Date()<fin?c:null;
+}
+function mvpList(m){
+ const l=[...m.a.map((n,i)=>({n,t:"a",v:m.pa?m.pa[i]:null})),...m.b.map((n,i)=>({n,t:"b",v:m.pb?m.pb[i]:null}))];
+ l.forEach(x=>x.mvp=(m.mvp||[]).includes(x.n));
+ return l.sort((x,y)=>(y.v==null?-1:y.v)-(x.v==null?-1:x.v)||(y.mvp-x.mvp));
+}
+function lienzo(){const c=document.createElement("canvas");c.width=1080;c.height=1350;const x=c.getContext("2d");x.scale(2,2);x.fillStyle=C2.bg;x.fillRect(0,0,540,675);return [c,x]}
+function tx(x,t,X,Y,font,color,align,maxW){
+ x.font=font;x.fillStyle=color;x.textAlign=align||"left";x.textBaseline="alphabetic";t=String(t);
+ if(maxW&&x.measureText(t).width>maxW){while(t.length>1&&x.measureText(t+"…").width>maxW)t=t.slice(0,-1);t+="…"}
+ x.fillText(t,X,Y);return x.measureText(t).width;
+}
+function cabecera(x,kick,title,sub){
+ x.fillStyle=C2.green;x.fillRect(0,0,540,118);
+ tx(x,kick.toUpperCase(),28,34,"700 12px "+FS2,"rgba(255,255,255,.82)");
+ tx(x,title,28,74,"800 34px "+FG2,"#fff","left",484);
+ if(sub)tx(x,sub,28,100,"15px "+FS2,"rgba(255,255,255,.9)","left",484);
+}
+function pie(x,t){
+ x.strokeStyle=C2.line;x.lineWidth=1;x.beginPath();x.moveTo(0,640.5);x.lineTo(540,640.5);x.stroke();
+ const w=tx(x,"Varadero App",28,662,"700 12px "+FS2,C2.green);
+ tx(x," · "+t,28+w,662,"12px "+FS2,C2.mute,"left",300);
+ tx(x,"varadero.netlify.app",512,662,"12px "+FS2,C2.mute,"right");
+}
+function ficha2(x,cx,cy,r,name,border,fg,fill){
+ x.beginPath();x.arc(cx,cy,r,0,2*Math.PI);x.fillStyle=fill||C2.card;x.fill();x.lineWidth=3;x.strokeStyle=border;x.stroke();
+ tx(x,ini(name),cx,cy+r*.33,`800 ${Math.round(r*.8)}px ${FG2}`,fg,"center");
+}
+function barra(x,X,Y,W,H,frac,color){
+ rr(x,X,Y,W,H,H/2);x.fillStyle=C2.card;x.fill();x.strokeStyle=C2.line;x.lineWidth=1;x.stroke();
+ if(frac>0){rr(x,X,Y,Math.max(H,W*Math.min(1,frac)),H,H/2);x.fillStyle=color;x.fill()}
+}
+function drawMvp(m){
+ const [c,x]=lienzo(),l=mvpList(m),jue=new Date(m.f+"T12:00:00").getDay()===4,best=l.find(p=>p.mvp)||l[0];
+ const larga=new Date(m.f+"T12:00:00").toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+ cabecera(x,jue?"Votación del juernes":"Votación del partido",jue?"MVP del juernes":"MVP del partido",larga);
+ rr(x,20,136,500,92,18);x.fillStyle=C2.card;x.fill();x.strokeStyle=C2.gold;x.lineWidth=2;x.stroke();
+ ficha2(x,72,182,36,best.n,C2.gold,C2.gold);
+ tx(x,"⭐ MVP",124,166,"800 13px "+FS2,C2.gold);
+ tx(x,m.mvp.length>1?m.mvp.join(" y "):best.n,124,198,"800 28px "+FG2,C2.ink,"left",280);
+ tx(x,m.mvp.length>1?"MVP compartido · el mejor puntaje de la noche":"Equipo "+best.t.toUpperCase()+" · el mejor puntaje de la noche",124,218,"13px "+FS2,C2.mute,"left",280);
+ if(best.v!=null){tx(x,f1(best.v),496,194,"800 40px "+FG2,C2.gold,"right");tx(x,"NOTA",496,214,"700 11px "+FS2,C2.mute,"right")}
+ let y=262;
+ if(m.ga!=null&&m.gb!=null){
+  const pill=(cx,t,bg,fg)=>{rr(x,cx-48,y-20,96,28,14);x.fillStyle=bg;x.fill();tx(x,t,cx,y-1,"700 14px "+FS2,fg,"center")};
+  pill(166,"Equipo A",C2.a,"#111");pill(374,"Equipo B",C2.b,"#fff");
+  tx(x,m.ga+" – "+m.gb,270,y+4,"800 30px "+FG2,C2.ink,"center");y=306;
+ }
+ const h=Math.min(32,(630-y)/l.length);
+ l.forEach((p,i)=>{
+  const Y=y+i*h;
+  tx(x,i+1,34,Y,"700 13px "+FS2,C2.mute,"center");
+  x.beginPath();x.arc(58,Y-5,5,0,2*Math.PI);x.fillStyle=p.t==="a"?C2.a:C2.b;x.fill();
+  tx(x,p.n+(p.mvp?" ⭐":""),72,Y,"700 16px "+FS2,C2.ink,"left",200);
+  if(p.v!=null){barra(x,290,Y-11,160,10,p.v/5,p.mvp?C2.gold:C2.ok);tx(x,f1(p.v),512,Y,"800 16px "+FS2,C2.ink,"right")}
+  else tx(x,"–",512,Y,"800 16px "+FS2,C2.mute,"right");
+ });
+ pie(x,"notas de 1 a 5, votación anónima");
+ return c;
+}
+function drawRanking({R,L,per}){
+ const [c,x]=lienzo(),res=R.k==="pct"||R.k==="dg";
+ cabecera(x,"Ranking · "+per,R.l,`Jugadores con ${res?MIN_RES:MIN_PJ} partidos o más`);
+ const val=s=>R.f(R.v(s)),mx=Math.max(...L.map(s=>Math.abs(R.v(s))))||1;
+ let y=150;
+ if(L.length>=3){
+  [[L[1],100,28,66],[L[0],270,36,90],[L[2],440,28,50]].forEach(([s,cx,r,bh])=>{
+   const top=380-bh,first=s===L[0];
+   ficha2(x,cx,top-92+(first?0:12),r,s.name,first?C2.gold:C2.line,first?C2.gold:C2.ink);
+   tx(x,s.name,cx,top-36,"800 16px "+FS2,C2.ink,"center",150);
+   tx(x,val(s),cx,top-12,"800 22px "+FG2,C2.ink,"center");
+   rr(x,cx-76,top,152,bh+20,12);x.fillStyle=first?"#efe0c4":C2.card;x.fill();x.strokeStyle=C2.line;x.lineWidth=1;x.stroke();
+   tx(x,s.rk,cx,top+bh/2+11,"800 30px "+FG2,first?C2.gold:C2.mute,"center");
+  });
+  x.fillStyle=C2.bg;x.fillRect(0,381,540,40);y=410;
+ }
+ const rest=(L.length>=3?L.slice(3):L).slice(0,L.length>=3?7:10),h=Math.min(34,(630-y)/Math.max(rest.length,1));
+ rest.forEach((s,i)=>{
+  const Y=y+i*h,v=R.v(s);
+  x.strokeStyle=C2.line;x.beginPath();x.moveTo(28,Y-h+10.5);x.lineTo(512,Y-h+10.5);x.stroke();
+  tx(x,s.rk,40,Y,"800 15px "+FS2,C2.mute,"center");
+  tx(x,s.name,64,Y,"700 16px "+FS2,C2.ink,"left",126);
+  barra(x,196,Y-12,250,12,Math.abs(v)/mx,v<0?C2.loss:C2.ok);
+  tx(x,val(s),512,Y,"800 16px "+FS2,C2.ink,"right");
+ });
+ pie(x,"estadísticas de Varadero");
+ return c;
+}
+function preview(canvas,name){
+ PVC=canvas;PVN=name;
+ const p=$("pv");p.querySelector("img").src=canvas.toDataURL("image/png");p.hidden=false;
+}
+function shareCanvas(cv,name,share){
+ cv.toBlob(async b=>{
+  const file=new File([b],name,{type:"image/png"});
+  if(share&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:"Varadero"});return}catch(e){if(e&&e.name==="AbortError")return}}
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  toast(share?"No se pudo compartir desde acá: descargué la imagen.":"Imagen descargada.");
+ },"image/png");
+}
+$("pv").addEventListener("click",e=>{
+ const t=e.target;
+ if(t.closest("[data-pvs]")){shareCanvas(PVC,PVN,true);return}
+ if(t.closest("[data-pvd]")){shareCanvas(PVC,PVN,false);return}
+ if(t.closest("[data-pvc]")||t.id==="pv")$("pv").hidden=true;
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("pv").hidden)$("pv").hidden=true});
 function renderVote(){
  const b=$("vbody");
  if(!VOT.length){b.innerHTML='<p class="hint">No hay ninguna votación abierta en este momento. Se abre el jueves a las 23 h, después del partido, y cierra el domingo a la medianoche.</p>';return}
