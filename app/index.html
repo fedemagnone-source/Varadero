@@ -116,6 +116,14 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .vban.mvp{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,var(--card))}
 #pv{position:fixed;inset:0;z-index:60;background:rgba(10,15,12,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px}
 #pv[hidden]{display:none}
+.yc{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--ok);color:var(--card);border-radius:12px;padding:12px 14px;margin:12px 0 4px}
+.yc b{font:800 1.25rem Georgia,serif}.yc small{display:block;font-size:.82rem;opacity:.9}.yc button{flex:none;background:var(--card);color:var(--ink)}
+.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.fbar .back{margin-top:12px}.fbar>button:not(.back){margin-top:12px}
+.vsh2{display:grid;grid-template-columns:1fr 40px 1fr;text-align:center;align-items:center;margin:16px 0 10px}
+.vsh2 .av{width:58px;height:58px;margin:0 auto 4px}.vsh2 .A .av{border-color:var(--a);color:var(--a)}.vsh2 .B .av{border-color:var(--b);color:var(--b)}
+.vsh2 b{font:800 1.1rem Georgia,serif}.vsh2 .x{font:800 1.2rem Georgia,serif;color:var(--mute)}
+.cmp2{display:grid;gap:5px}.cmp2 div{display:grid;grid-template-columns:1fr 110px 1fr;text-align:center;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px 0;font-weight:800;font-size:1.05rem;font-variant-numeric:tabular-nums}
+.cmp2 span{font-size:.78rem;color:var(--mute);font-weight:600}.cmp2 .w{color:var(--ok)}
 #pv img{max-width:min(100%,420px);max-height:calc(100vh - 170px);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 #pv .row{margin:0;justify-content:center}#pv .pw{background:#fff;color:#17231a}#pv .po{background:transparent;color:#fff;border:1px solid #fff}#pv .pc{background:none;color:#ccc;border:0}
 .vwho{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:8px}
@@ -424,9 +432,11 @@ function renderStats(){
  if(!ms.length){b.innerHTML='<p class="hint">No hay partidos en este período.</p>';return}
  const T=table(ms).filter(s=>s.pj>=MIN_PJ);
  if(DET&&!T.some(s=>s.name===DET))DET=null;
+ if(DET&&CMP!==null){b.innerHTML=CMP?cara(DET,CMP,ms):`<div class="fbar"><button class="back" data-cmpx>← Volver a la ficha</button></div><h3 style="font:800 1.2rem Georgia,serif;margin:14px 0 4px">Comparar a ${esc(DET)} con…</h3><p class="hint" style="margin:0 0 10px">Elegí un jugador para ver el cara a cara.</p><div class="vwho">${T.filter(t=>t.name!==DET).map(t=>t.name).sort((x,y)=>x.localeCompare(y,"es")).map(n=>`<button class="ghost" data-cmp="${esc(n)}">${esc(n)}</button>`).join("")}</div>`;return}
  if(DET){b.innerHTML=ficha(DET,ms);return}
  const wr=ms.filter(m=>m.ga!=null),gt=wr.reduce((a,m)=>a+m.ga+m.gb,0);
  let h=`<p class="sum">${ms.length} partidos${ms.length>wr.length?` (${ms.length-wr.length} sin resultado)`:""}${wr.length?` · ${f1(gt/wr.length)} goles por partido`:""}</p>
+ ${/^y\d{4}$/.test(sp.value)?`<div class="yc"><span><b>Resumen ${sp.value.slice(1)}</b><small>El que más vino, MVP, dupla del año y más</small></span><button data-share-an>📤 Compartir</button></div>`:""}
  <div class="chips" role="group" aria-label="Ranking">${RANKS.map(r=>`<button class="${r.k===RK?"":"ghost"}" data-rk="${r.k}" aria-pressed="${r.k===RK}">${r.l}</button>`).join("")}<button class="ghost" data-share-rk style="margin-left:auto">📤 Compartir</button></div>`;
  const R=RANKS.find(r=>r.k===RK);
  const L=T.filter(R.ok).sort((x,y)=>R.v(y)-R.v(x)||y.pj-x.pj||x.name.localeCompare(y.name,"es"));
@@ -456,7 +466,9 @@ function ficha(name,ms){
  const rs=s.res;let k=0;while(k<rs.length&&rs[rs.length-1-k]===rs[rs.length-1])k++;
  const lr=rs[rs.length-1],racha=rs.length?k+" "+(lr==="G"?(k>1?"ganados":"ganado"):lr==="P"?(k>1?"perdidos":"perdido"):(k>1?"empates":"empate")):"";
  const sub=[s.pj+" partidos",s.mvp?s.mvp+(s.mvp>1?" veces":" vez")+" MVP":"",s.arq?s.arq+" de arquero":"",F&&racha?"racha: "+racha:""].filter(Boolean).join(" · ");
- let h=`<button class="back" data-back>← Volver al ranking</button>
+ const sp=$("per"),per=sp.options[sp.selectedIndex]?sp.options[sp.selectedIndex].text:"Todo";
+ LASTFI={name,s,F,bt,bn,freq,racha:F?racha:"",per};
+ let h=`<div class="fbar"><button class="back" data-back>← Volver al ranking</button><button data-share-fi>📤 Compartir ficha</button><button class="ghost" data-cmp="">⚔️ Comparar con…</button></div>
  <div class="hd"><span class="av" aria-hidden="true">${esc(ini(name))}</span><div><div class="nm">${esc(name)}</div><div class="s">${sub}</div></div></div>`;
  h+=F?`<div class="tiles"><div class="tile"><b>${pc(s.pct)}</b><span>victorias</span></div><div class="tile"><b>${sg(s.dg)}</b><span>dif. de gol</span></div><div class="tile"><b>${f1(s.gf/s.jr)}</b><span>goles a favor</span></div><div class="tile"><b>${f1(s.nota)}</b><span>nota</span></div></div>`
   :`<div class="tiles"><div class="tile"><b>${s.pj}</b><span>partidos</span></div><div class="tile"><b>${f1(s.nota)}</b><span>nota</span></div><div class="tile"><b class="${s.mvp?"mvp":""}">${s.mvp}</b><span>MVP</span></div></div>
@@ -487,9 +499,14 @@ function ficha(name,ms){
 }
 $("stbody").addEventListener("click",e=>{
  if(e.target.closest("[data-share-rk]")){if(LASTRK)preview(drawRanking(LASTRK),"ranking-varadero.png");return}
+ if(e.target.closest("[data-share-fi]")){if(LASTFI)preview(drawFicha(LASTFI),"ficha-varadero.png");return}
+ if(e.target.closest("[data-share-vs]")){if(LASTVS)preview(drawVs(LASTVS),"cara-a-cara-varadero.png");return}
+ if(e.target.closest("[data-share-an]")){const y=$("per").value.slice(1),ms=M.filter(m=>String(m.f).startsWith(y));preview(drawAnio(resumenAnio(ms,y)),"resumen-"+y+"-varadero.png");return}
+ const cp=e.target.closest("[data-cmp]");if(cp){CMP=cp.dataset.cmp;renderStats();$("stats").scrollIntoView({block:"start"});return}
+ if(e.target.closest("[data-cmpx]")){CMP=null;renderStats();$("stats").scrollIntoView({block:"start"});return}
  const r=e.target.closest("[data-rk]");if(r){RK=r.dataset.rk;renderStats();return}
- if(e.target.closest("[data-back]")){DET=null;renderStats();$("stats").scrollIntoView({block:"start"});return}
- const p=e.target.closest("[data-pl]");if(p){DET=p.dataset.pl;renderStats();$("stats").scrollIntoView({block:"start"})}
+ if(e.target.closest("[data-back]")){DET=null;CMP=null;renderStats();$("stats").scrollIntoView({block:"start"});return}
+ const p=e.target.closest("[data-pl]");if(p){DET=p.dataset.pl;CMP=null;renderStats();$("stats").scrollIntoView({block:"start"})}
 });
 $("per").onchange=renderStats;
 /* ---------- votación de puntajes ---------- */
@@ -522,7 +539,7 @@ $("vban").addEventListener("click",e=>{
  if(e.target.closest("[data-mvpshare]")){const m=lastMvp();if(m)preview(drawMvp(m),"mvp-varadero.png")}
 });
 /* ---------- imágenes para compartir (1080 × 1350, se dibujan en el celular) ---------- */
-let LASTRK=null,PVC=null,PVN="";
+let LASTRK=null,PVC=null,PVN="",LASTFI=null,LASTVS=null,LASTAN=null,CMP=null;
 const C2={bg:"#eef2ea",card:"#fbfcf8",ink:"#17231a",mute:"#5d6b60",line:"#cfd8ca",a:"#ff5f00",b:"#5f6b65",ok:"#2f7d4f",loss:"#b83a2e",gold:"#b7791f",green:"#1f6f4a"};
 const FS2="'Trebuchet MS','Segoe UI',system-ui,sans-serif",FG2="Georgia,'Times New Roman',serif";
 // Último partido con MVP y puntajes, si todavía no pasó una semana (hasta el jueves siguiente a las 23 h)
@@ -618,6 +635,120 @@ function drawRanking({R,L,per}){
   tx(x,val(s),512,Y,"800 16px "+FS2,C2.ink,"right");
  });
  pie(x,"estadísticas de Varadero");
+ return c;
+}
+// ---- cara a cara ----
+function cara(A,B,ms){
+ const T=table(ms),f=n=>{const t=T.find(x=>x.name===n);return {...t,pct:t.jr?t.g/t.jr:null,dg:t.gf-t.gc}},a=f(A),b=f(B);
+ const jun=[0,0,0],vs=[0,0,0];
+ ms.forEach(m=>{if(m.ga==null||m.gb==null)return;const ia=m.a.includes(A)?1:m.b.includes(A)?2:0,ib=m.a.includes(B)?1:m.b.includes(B)?2:0;if(!ia||!ib)return;
+  const fa=ia===1?m.ga:m.gb,ca=ia===1?m.gb:m.ga;
+  if(ia===ib){jun[0]++;if(fa>ca)jun[1]++;else if(fa===ca)jun[2]++}else{vs[0]++;if(fa>ca)vs[1]++;else if(fa<ca)vs[2]++}});
+ const sp=$("per");LASTVS={a,b,jun,vs,per:sp.options[sp.selectedIndex]?sp.options[sp.selectedIndex].text:"Todo"};
+ const row=(l,x,y,fx)=>`<div><span class="${x!=null&&y!=null&&x>y?"w":""}" style="font-size:1.05rem;color:inherit;font-weight:800">${x==null?"–":fx(x)}</span><span>${l}</span><span class="${x!=null&&y!=null&&y>x?"w":""}" style="font-size:1.05rem;color:inherit;font-weight:800">${y==null?"–":fx(y)}</span></div>`.replace(/class="w" style="font-size:1.05rem;color:inherit/g,'class="w" style="font-size:1.05rem;color:var(--ok)');
+ const frase=vs[0]?(vs[1]===vs[2]?`Enfrentados, empatan: ${vs[1]} a ${vs[2]} en ${vs[0]} partidos.`:`Enfrentados, ${esc(vs[1]>vs[2]?A:B)} ganó ${Math.max(vs[1],vs[2])} de ${vs[0]}.`):"Todavía no se enfrentaron en partidos con resultado.";
+ return `<div class="fbar"><button class="back" data-cmpx>← Volver a la ficha</button><button data-share-vs>📤 Compartir</button><button class="ghost" data-cmp="">Cambiar</button></div>
+ <div class="vsh2"><div class="A"><span class="av">${esc(ini(A))}</span><b>${esc(A)}</b></div><span class="x">vs</span><div class="B"><span class="av">${esc(ini(B))}</span><b>${esc(B)}</b></div></div>
+ <div class="cmp2">${row("partidos",a.pj,b.pj,x=>x)}${row("% victorias",a.pct,b.pct,pc)}${row("nota",a.nota,b.nota,f1)}${row("MVP",a.mvp,b.mvp,x=>x)}${row("dif. de gol",a.jr?a.dg:null,b.jr?b.dg:null,sg)}</div>
+ <div class="tiles" style="grid-template-columns:1fr 1fr;margin-top:10px"><div class="tile"><b>${jun[0]}</b><span>juntos · ganaron ${jun[1]}</span></div><div class="tile"><b>${vs[1]} – ${vs[2]}</b><span>enfrentados (${vs[0]})</span></div></div>
+ <p style="text-align:center;font:700 1rem Georgia,serif;margin:6px 0 0">${frase}</p>`;
+}
+// ---- resumen del año ----
+function resumenAnio(ms,y){
+ const T=table(ms),wr=ms.filter(m=>m.ga!=null&&m.gb!=null),goles=wr.reduce((a,m)=>a+m.ga+m.gb,0);
+ // el máximo; si hay empate, desempata d (ej. más partidos); si sigue empatado, se nombran todos
+ const top=(l,v,d)=>{l=l.filter(t=>v(t)!=null);if(!l.length)return null;const mx=Math.max(...l.map(v));let w=l.filter(t=>v(t)===mx);
+  if(d&&w.length>1){const md=Math.max(...w.map(d));w=w.filter(t=>d(t)===md)}
+  const n=w.map(t=>t.name);return {n:n.length>1?n.slice(0,-1).join(", ")+" y "+n[n.length-1]:n[0],v:mx,t:w[0]}};
+ const el=T.filter(t=>t.pj>=MIN_PJ);
+ const duos=new Map();
+ wr.forEach(m=>[[m.a,m.ga,m.gb],[m.b,m.gb,m.ga]].forEach(([t,f,c])=>{for(let i=0;i<t.length;i++)for(let j=i+1;j<t.length;j++){const k=[t[i],t[j]].sort((x,z)=>x.localeCompare(z,"es")).join(" & ");const o=duos.get(k)||{k,j:0,g:0};o.j++;if(f>c)o.g++;duos.set(k,o)}}));
+ const dupla=[...duos.values()].filter(o=>o.j>=5).sort((x,z)=>z.g/z.j-x.g/x.j||z.j-x.j)[0]||null;
+ const gol=wr.slice().sort((x,z)=>Math.abs(z.ga-z.gb)-Math.abs(x.ga-x.gb)||(z.ga+z.gb)-(x.ga+x.gb))[0]||null;
+ return {y,partidos:ms.length,conres:wr.length,goles,
+  presente:top(T,t=>t.pj),mvp:top(T,t=>t.mvp||null),
+  pct:top(el.filter(t=>t.jr>=5),t=>t.g/t.jr,t=>t.jr),nota:top(el.filter(t=>t.nn>=5),t=>t.nota,t=>t.nn),dupla,gol};
+}
+function drawAnio(o){
+ const [c,x]=lienzo();
+ x.fillStyle=C2.green;x.fillRect(0,0,540,150);
+ tx(x,"RESUMEN DEL AÑO",28,36,"700 12px "+FS2,"rgba(255,255,255,.82)");
+ const w=tx(x,o.y,26,120,"800 76px "+FG2,"#fff");tx(x,"en Varadero",40+w,112,"17px "+FS2,"rgba(255,255,255,.92)");
+ [[o.partidos,"juernes"],[Math.round(o.goles),"goles"],[o.conres?f1(o.goles/o.conres):"–","goles por partido"]].forEach(([v,l],i)=>{
+  const X=24+i*168;rr(x,X,166,156,66,14);x.fillStyle=C2.green;x.fill();
+  tx(x,v,X+78,202,"800 30px "+FG2,"#fff","center");tx(x,l,X+78,222,"12px "+FS2,"rgba(255,255,255,.88)","center");
+ });
+ const gl=o.gol,box=[
+  ["📅","El que más vino",o.presente&&o.presente.n,o.presente&&`${o.presente.v} de ${o.partidos} partidos`],
+  ["⭐","Más veces MVP",o.mvp&&o.mvp.n,o.mvp&&`${o.mvp.v} ${o.mvp.v>1?"veces":"vez"}`],
+  ["🏆","Mejor % de victorias",o.pct&&o.pct.n,o.pct&&`${pc(o.pct.v)} · ${o.pct.t.g} de ${o.pct.t.jr}`],
+  ["📈","Mejor nota",o.nota&&o.nota.n,o.nota&&`promedio ${f1(o.nota.v)}`],
+  ["🤝","Dupla del año",o.dupla&&o.dupla.k,o.dupla&&`${o.dupla.g} de ${o.dupla.j} ganados juntos`],
+  ["💥","Mayor goleada"+(gl?" · "+new Date(gl.f+"T12:00:00").toLocaleDateString("es",{day:"numeric",month:"long"}):""),gl&&`${Math.max(gl.ga,gl.gb)} – ${Math.min(gl.ga,gl.gb)}`,gl&&(gl.ga>gl.gb?gl.a:gl.b).join(", ")]];
+ box.forEach(([ic,l,v,d],i)=>{
+  const X=24+(i%2)*250,Y=244+Math.floor(i/2)*128;rr(x,X,Y,242,118,14);x.fillStyle=C2.card;x.fill();x.strokeStyle=C2.line;x.lineWidth=1;x.stroke();
+  tx(x,ic,X+14,Y+30,"20px "+FS2,C2.ink);tx(x,l.toUpperCase(),X+14,Y+52,"700 11px "+FS2,C2.mute,"left",214);
+  tx(x,v||"–",X+14,Y+80,"800 21px "+FG2,C2.ink,"left",214);if(d)tx(x,d,X+14,Y+102,"13px "+FS2,C2.mute,"left",214);
+ });
+ pie(x,"resumen "+o.y);
+ return c;
+}
+// ---- ficha ----
+function dona(x,cx,cy,r,w,parts){
+ const tot=parts.reduce((a,p)=>a+p[0],0);if(!tot)return;let a0=-Math.PI/2;
+ parts.forEach(([n,col])=>{if(!n)return;const a1=a0+2*Math.PI*n/tot;x.beginPath();x.arc(cx,cy,r,a0,a1);x.strokeStyle=col;x.lineWidth=w;x.stroke();a0=a1});x.lineWidth=1;
+}
+function drawFicha(o){
+ const [c,x]=lienzo(),s=o.s;
+ const sub=[s.pj+" partidos",s.mvp?s.mvp+(s.mvp>1?" veces":" vez")+" MVP":"",o.racha?"racha: "+o.racha:""].filter(Boolean).join(" · ");
+ cabecera(x,"Ficha del jugador · "+o.per,o.name,sub);
+ x.fillStyle=C2.green;x.fillRect(400,0,140,118);ficha2(x,474,60,38,o.name,"#fff",C2.ink,C2.bg);
+ const T=o.F?[[pc(s.pct),"victorias"],[sg(s.dg),"dif. de gol"],[f1(s.gf/s.jr),"goles a favor"],[f1(s.nota),"nota"]]:[[s.pj,"partidos"],[f1(s.nota),"nota"],[s.mvp,"MVP"]];
+ const tw=(492-(T.length-1)*8)/T.length;
+ T.forEach(([v,l],i)=>{const X=24+i*(tw+8);rr(x,X,134,tw,66,12);x.fillStyle=C2.card;x.fill();x.strokeStyle=C2.line;x.lineWidth=1;x.stroke();tx(x,v,X+tw/2,170,"800 26px "+FG2,C2.ink,"center");tx(x,l,X+tw/2,190,"12px "+FS2,C2.mute,"center")});
+ rr(x,24,214,492,170,14);x.fillStyle=C2.card;x.fill();x.strokeStyle=C2.line;x.stroke();
+ if(o.F){
+  dona(x,104,299,52,22,[[s.g,C2.ok],[s.e,"#9aa59d"],[s.p,C2.loss]]);
+  tx(x,pc(s.pct),104,308,"800 24px "+FG2,C2.ink,"center");
+  [[C2.ok,s.g+(s.g===1?" ganado":" ganados")],["#9aa59d",s.e+(s.e===1?" empatado":" empatados")],[C2.loss,s.p+(s.p===1?" perdido":" perdidos")]].forEach(([col,t],i)=>{rr(x,186,246+i*24,12,12,3);x.fillStyle=col;x.fill();tx(x,t,206,257+i*24,"15px "+FS2,C2.ink)});
+  const r=s.res.slice(-24);r.forEach((v,i)=>{rr(x,186+(i%12)*20,326+Math.floor(i/12)*18,14,14,3);x.fillStyle=v==="G"?C2.ok:v==="P"?C2.loss:"#9aa59d";x.fill()});
+  tx(x,`últimos ${r.length} partidos con resultado`,186,374,"12px "+FS2,C2.mute);
+ }else{
+  tx(x,"Todavía no tiene partidos con resultado cargado.",270,304,"15px "+FS2,C2.mute,"center",440);
+ }
+ const msg="Para que aparezcan datos, debe concurrir a más juernes.";
+ [["🤝","Mejor dupla",o.bt&&o.F?[o.bt.n,`${o.bt.g} de ${o.bt.j} ganados juntos`]:null],["😈","Villano",o.bn&&o.F?[o.bn.n,`le ganó ${o.bn.p} de ${o.bn.j}`]:null],["👥","Compañero más frecuente",o.freq?[o.freq.n,`${o.freq.j} partidos juntos`]:null]].forEach(([ic,l,v],i)=>{
+  const Y=398+i*78;rr(x,24,Y,492,68,12);x.fillStyle=C2.card;x.fill();x.strokeStyle=C2.line;x.lineWidth=1;x.stroke();
+  tx(x,ic,40,Y+42,"24px "+FS2,C2.ink);tx(x,l,82,Y+26,"12px "+FS2,C2.mute);
+  if(v){const w=tx(x,v[0],82,Y+50,"800 18px "+FS2,C2.ink,"left",200);tx(x," · "+v[1],82+w,Y+50,"15px "+FS2,C2.ink,"left",400-w)}
+  else tx(x,msg,82,Y+50,"14px "+FS2,C2.mute,"left",420);
+ });
+ pie(x,"ficha del jugador");
+ return c;
+}
+// ---- cara a cara (imagen) ----
+function drawVs(o){
+ const [c,x]=lienzo(),{a,b,jun,vs}=o;
+ cabecera(x,"Cara a cara · "+o.per,a.name+" vs. "+b.name,"");
+ ficha2(x,140,170,36,a.name,C2.a,C2.a);ficha2(x,400,170,36,b.name,C2.b,C2.b);
+ tx(x,"vs",270,180,"800 28px "+FG2,C2.mute,"center");
+ tx(x,a.name,140,236,"800 22px "+FG2,C2.ink,"center",220);tx(x,b.name,400,236,"800 22px "+FG2,C2.ink,"center",220);
+ const rows=[["partidos",a.pj,b.pj,v=>v],["% victorias",a.pct,b.pct,pc],["nota",a.nota,b.nota,f1],["MVP",a.mvp,b.mvp,v=>v],["dif. de gol",a.jr?a.dg:null,b.jr?b.dg:null,sg]];
+ rows.forEach(([l,va,vb,fx],i)=>{
+  const Y=256+i*44;rr(x,24,Y,492,38,10);x.fillStyle=C2.card;x.fill();x.strokeStyle=C2.line;x.lineWidth=1;x.stroke();
+  const wa=va!=null&&vb!=null&&va>vb,wb=va!=null&&vb!=null&&vb>va;
+  tx(x,(va==null?"–":fx(va))+(wa?" ◀":""),140,Y+26,"800 19px "+FS2,wa?C2.ok:C2.ink,"center");
+  tx(x,l,270,Y+24,"700 13px "+FS2,C2.mute,"center");
+  tx(x,(wb?"▶ ":"")+(vb==null?"–":fx(vb)),400,Y+26,"800 19px "+FS2,wb?C2.ok:C2.ink,"center");
+ });
+ const bx=(X,t,big,small,parts)=>{rr(x,X,482,242,104,14);x.fillStyle=C2.card;x.fill();x.strokeStyle=C2.line;x.stroke();
+  tx(x,t,X+121,506,"800 12px "+FS2,C2.mute,"center");tx(x,big,X+121,542,"800 30px "+FG2,C2.ink,"center");tx(x,small,X+121,562,"13px "+FS2,C2.mute,"center");
+  const tot=parts.reduce((s,p)=>s+p[0],0);let px=X+16;if(tot)parts.forEach(([n,col])=>{const w=210*n/tot;if(w>0){x.fillStyle=col;x.fillRect(px,570,w,8)}px+=w})};
+ bx(24,"🤝 JUNTOS",jun[0],`partidos · ganaron ${jun[1]}`,[[jun[1],C2.ok],[jun[2],"#9aa59d"],[jun[0]-jun[1]-jun[2],C2.loss]]);
+ bx(274,"⚔️ ENFRENTADOS",`${vs[1]} – ${vs[2]}`,`en ${vs[0]} partidos`,[[vs[1],C2.a],[vs[0]-vs[1]-vs[2],"#9aa59d"],[vs[2],C2.b]]);
+ const fr=vs[0]?(vs[1]===vs[2]?`Enfrentados, empatan ${vs[1]} a ${vs[2]}.`:`Enfrentados, ${vs[1]>vs[2]?a.name:b.name} ganó ${Math.max(vs[1],vs[2])} de ${vs[0]}.`):"Todavía no se enfrentaron.";
+ tx(x,fr,270,614,"700 16px "+FG2,C2.ink,"center",492);
+ pie(x,"cara a cara");
  return c;
 }
 function preview(canvas,name){
