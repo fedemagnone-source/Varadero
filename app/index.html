@@ -398,11 +398,17 @@ function inPer(m,p){
  const d=new Date();d.setDate(d.getDate()-(+p));return String(m.f)>=d.toISOString().slice(0,10);
 }
 // Una entrada por jugador y partido, en orden cronológico
+// "Citizen", "Citizen 2"… son invitados: juegan (y suman goles a su equipo) pero no figuran en las estadísticas
+const esCit=n=>/^citizen( \d+)?$/i.test(String(n).trim());
+const sinCit=l=>l.filter(n=>!esCit(n));
+// Antes de esta fecha los equipos cargados no son los reales: esos partidos cuentan para presencias,
+// pero no para "compañero más frecuente" (dupla, villano y cara a cara ya usan solo partidos con goles)
+const EQUIPOS_REALES_DESDE="2024-01-01";
 function apps(ms){
  const out=[];
  ms.forEach((m,mi)=>{const has=m.ga!=null&&m.gb!=null;
-  [[m.a,m.b,m.ga,m.gb,m.pa],[m.b,m.a,m.gb,m.ga,m.pb]].forEach(([t,o,f,c,nt])=>t.forEach((n,i)=>out.push({n,m,mi,t,o,f,c,has,
-   r:has?(f>c?"G":f<c?"P":"E"):null,nota:nt&&nt[i]!=null?nt[i]:null,mvp:(m.mvp||[]).includes(n),arq:(m.g||[]).includes(n)})));
+  [[m.a,m.b,m.ga,m.gb,m.pa],[m.b,m.a,m.gb,m.ga,m.pb]].forEach(([t0,o0,f,c,nt])=>{const t=sinCit(t0),o=sinCit(o0);t0.forEach((n,i)=>!esCit(n)&&out.push({n,m,mi,t,o,f,c,has,
+   r:has?(f>c?"G":f<c?"P":"E"):null,nota:nt&&nt[i]!=null?nt[i]:null,mvp:(m.mvp||[]).includes(n),arq:(m.g||[]).includes(n)}))});
  });
  return out;
 }
@@ -459,7 +465,7 @@ function ficha(name,ms){
  const tm=new Map(),rv=new Map(),all=new Map();   // tm y rv: solo partidos con resultado; all: todos (compañero más frecuente)
  const add=(mp,n,r)=>{if(!mp.has(n))mp.set(n,{n,j:0,g:0,p:0});const o=mp.get(n);o.j++;if(r==="G")o.g++;if(r==="P")o.p++};
  mine.filter(x=>x.has).forEach(x=>{x.t.forEach(n=>n!==name&&add(tm,n,x.r));x.o.forEach(n=>add(rv,n,x.r))});
- mine.forEach(x=>x.t.forEach(n=>n!==name&&add(all,n,null)));
+ mine.filter(x=>String(x.m.f)>=EQUIPOS_REALES_DESDE).forEach(x=>x.t.forEach(n=>n!==name&&add(all,n,null)));
  // mejor dupla y villano: mínimo 5 partidos con resultado juntos / enfrentados
  const best=(mp,k)=>[...mp.values()].filter(o=>o.j>=5).sort((x,y)=>y[k]/y.j-x[k]/x.j||y.j-x.j)[0];
  const freq=[...all.values()].sort((x,y)=>y.j-x.j)[0],bt=best(tm,"g"),bn=best(rv,"p");
@@ -662,7 +668,7 @@ function resumenAnio(ms,y){
   const n=w.map(t=>t.name);return {n:n.length>1?n.slice(0,-1).join(", ")+" y "+n[n.length-1]:n[0],v:mx,t:w[0]}};
  const el=T.filter(t=>t.pj>=MIN_PJ);
  const duos=new Map();
- wr.forEach(m=>[[m.a,m.ga,m.gb],[m.b,m.gb,m.ga]].forEach(([t,f,c])=>{for(let i=0;i<t.length;i++)for(let j=i+1;j<t.length;j++){const k=[t[i],t[j]].sort((x,z)=>x.localeCompare(z,"es")).join(" & ");const o=duos.get(k)||{k,j:0,g:0};o.j++;if(f>c)o.g++;duos.set(k,o)}}));
+ wr.forEach(m=>[[sinCit(m.a),m.ga,m.gb],[sinCit(m.b),m.gb,m.ga]].forEach(([t,f,c])=>{for(let i=0;i<t.length;i++)for(let j=i+1;j<t.length;j++){const k=[t[i],t[j]].sort((x,z)=>x.localeCompare(z,"es")).join(" & ");const o=duos.get(k)||{k,j:0,g:0};o.j++;if(f>c)o.g++;duos.set(k,o)}}));
  const dupla=[...duos.values()].filter(o=>o.j>=5).sort((x,z)=>z.g/z.j-x.g/x.j||z.j-x.j)[0]||null;
  const gol=wr.slice().sort((x,z)=>Math.abs(z.ga-z.gb)-Math.abs(x.ga-x.gb)||(z.ga+z.gb)-(x.ga+x.gb))[0]||null;
  return {y,partidos:ms.length,conres:wr.length,goles,
