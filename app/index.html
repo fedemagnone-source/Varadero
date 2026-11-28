@@ -117,7 +117,21 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 @keyframes latir{from{opacity:.25}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.upd::before{animation:none}}
 .upd[hidden]{display:none}
-.vban[hidden]{display:none}.vban button{flex:none}
+.vban[hidden]{display:none}
+#back{margin:0;flex:none;padding:6px 10px}#back[hidden]{display:none}
+.hcards{display:grid;gap:12px}
+.hc{display:flex;gap:14px;align-items:center;width:100%;text-align:left;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:16px;font-weight:400}
+.hc .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:26px;flex:none;background:color-mix(in srgb,var(--ok) 14%,var(--card))}
+.hc b{font:800 1.15rem Georgia,serif;display:block}.hc small{color:var(--mute);font-size:.86rem;display:block}
+.hc .go{margin-left:auto;color:var(--mute);font-size:1.4rem}
+.hc.v{border:2px solid var(--a);background:color-mix(in srgb,var(--a) 10%,var(--card))}.hc.v .ic{background:var(--a)}
+.hc.m{border:2px solid var(--gold);background:color-mix(in srgb,var(--gold) 12%,var(--card))}.hc.m .ic{background:var(--gold)}
+.hc.off{opacity:.55;cursor:default}
+.pill{display:inline-block;background:var(--ink);color:var(--bg);font-weight:700;font-size:.75rem;border-radius:999px;padding:2px 9px;margin-top:5px}
+.lockb{display:grid;gap:12px;text-align:center;justify-items:center;padding:10px 0}
+.lockb input{width:min(100%,260px);border:1px solid var(--line);border-radius:8px;padding:11px;font:inherit;text-align:center;letter-spacing:.2em;background:var(--bg);color:var(--ink)}
+.af{display:grid;gap:12px;margin-top:10px}.af label{display:grid;gap:4px;font-weight:600}.af small{color:var(--mute);font-weight:400}
+.af input{border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;background:var(--bg);color:var(--ink)}.vban button{flex:none}
 .vban.mvp{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,var(--card))}
 #pv{position:fixed;inset:0;z-index:60;background:rgba(10,15,12,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px}
 #pv[hidden]{display:none}
@@ -154,8 +168,7 @@ a.btn{display:inline-block;font-weight:600;font-size:.95rem;border-radius:8px;pa
 <body>
 <main>
 <header id="top">
- <div class="trow"><h1>Varadero App <span id="upd" class="upd" hidden>actualizando…</span></h1><span id="cnt2"></span></div>
- <div class="tabs" id="tabs" hidden><button data-tab="eq">Equipos</button><button class="ghost" data-tab="st">Estadísticas</button></div>
+ <div class="trow"><button class="back" id="back" hidden>← Inicio</button><h1><span id="ttl">Varadero App</span> <span id="upd" class="upd" hidden>actualizando…</span></h1><span id="cnt2"></span></div>
  <div id="ctl" hidden>
   <input id="q" type="search" placeholder="Buscar jugador…" autocomplete="off" aria-label="Buscar jugador">
   <div class="brow"><button class="ghost" id="none">Limpiar selección</button><button id="go">Armar equipos</button></div>
@@ -164,10 +177,15 @@ a.btn{display:inline-block;font-weight:600;font-size:.95rem;border-radius:8px;pa
 
 <p id="msg" class="hint">Cargando jugadores…</p>
 <div id="vban" class="vban" hidden></div>
+<section id="home" hidden><p class="hint" id="hoy" style="margin:-4px 0 12px"></p><div id="homeCards" class="hcards"></div></section>
+<section id="lock" hidden><div class="lockb"><div style="font-size:40px" aria-hidden="true">🔒</div><h2 style="margin:0">Sección para la comisión</h2>
+<p class="hint" style="margin:0">Ingresá la clave para armar equipos. Se pide una sola vez en este teléfono.</p>
+<input id="pw" type="password" autocomplete="off" aria-label="Clave"><button id="pwok">Entrar</button><p id="pwerr" class="err" style="margin:0"></p></div></section>
+<section id="addp" hidden><div id="addb"></div></section>
 
 <section id="sel" hidden>
-<h2>¿Quiénes juegan hoy? <span class="hint" id="cnt"></span></h2>
-<p class="hint" style="margin:8px 0 0">Tocá 🧤 en quien juega de arquero hoy (máximo 2).</p>
+<div class="trow" style="align-items:flex-start"><h2>¿Quiénes juegan hoy? <span class="hint" id="cnt"></span></h2><button class="ghost" id="addbtn" style="flex:none;padding:6px 10px">＋ Jugador</button></div>
+<p class="hint" style="margin:8px 0 0">Tocá 🧤 en quien juega de arquero hoy (máximo 2). ¿Falta alguien? Agregalo con <b>＋ Jugador</b>.</p>
 <div id="list"></div>
 <select id="fis" hidden></select><input id="bonus" type="hidden" value="0.5">
 <div id="err" class="err"></div>
@@ -175,7 +193,7 @@ a.btn{display:inline-block;font-weight:600;font-size:.95rem;border-radius:8px;pa
 
 <div id="out"></div>
 <section id="vote" hidden>
-<div class="trow"><h2 style="margin:0">Votación</h2><button class="ghost" data-vclose>Cerrar</button></div>
+
 <div id="vbody"></div>
 </section>
 <section id="stats" hidden>
@@ -208,7 +226,7 @@ function apply(cols,out,cfg,conservar){
  if(antes){const ix=n=>P.findIndex(p=>p.name===n);antes.sel.map(ix).filter(i=>i>=0).forEach(i=>sel.add(i));antes.gk.map(ix).filter(i=>i>=0&&sel.has(i)).forEach(i=>gk.add(i))}
  $("fis").innerHTML=K.map((k,i)=>`<option value="${i}">${esc(k)}</option>`).join("");
  let g=cfg&&cfg.fis!=null?K.indexOf(cfg.fis):-1;if(g<0)g=K.findIndex(k=>/f[ií]s|physic|stamina|resist/i.test(k));if(g>=0)$("fis").value=g;if(cfg&&cfg.bonus!=null)$("bonus").value=cfg.bonus;
- $("tabs").hidden=false;setTab(TAB);render();
+ if(TAB!=="add"&&TAB!=="lock")setTab(TAB,true);render();
  if(!antes||antes.firma!==JSON.stringify([K,P])){$("out").innerHTML="";cands=[]}
 }
 const norm=s=>String(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
@@ -385,15 +403,84 @@ $("q").addEventListener("input",render);
 // (la ficha de cada jugador muestra todas sus estadísticas, sin este segundo mínimo)
 // (se calculan con los partidos que tienen resultado cargado).
 const MIN_PJ=10,MIN_RES=20;
-let M=null,TAB="eq",RK="pj",DET=null;
-function setTab(t){
- if(t!=="vo")PREV=t;
+// Navegación: inicio con tarjetas y secciones (con #ancla, así el botón "atrás" del teléfono vuelve al inicio).
+// SOLO = se abrió con el link de la votación (?votar): muestra únicamente la votación.
+const SOLO=/[?&]votar\b/.test(location.search);
+const HASH={home:"",eq:"#equipos",lock:"#equipos",add:"#equipos",st:"#estadisticas",vo:"#votacion"};
+const deHash=()=>SOLO?"vo":({"#equipos":"eq","#estadisticas":"st","#votacion":"vo"}[location.hash]||"home");
+const eqOk=()=>fetchS("eqok")==="1";
+let M=null,TAB=deHash(),RK="pj",DET=null;
+function setTab(t,sinHash){
+ if(t==="eq"&&!eqOk())t="lock";
  TAB=t;const eq=t==="eq";
- $("sel").hidden=!eq;$("ctl").hidden=!eq;$("out").hidden=!eq;$("cnt2").hidden=!eq;$("stats").hidden=t!=="st";$("vote").hidden=t!=="vo";
- document.querySelectorAll("[data-tab]").forEach(b=>{b.className=b.dataset.tab===t?"":"ghost";b.setAttribute("aria-pressed",b.dataset.tab===t)});
- if(t==="st")renderStats();if(t==="vo")renderVote();renderBanner();setHH();
+ $("home").hidden=t!=="home";$("lock").hidden=t!=="lock";$("addp").hidden=t!=="add";
+ $("sel").hidden=!eq;$("ctl").hidden=!eq;$("out").hidden=!eq;$("cnt2").hidden=!eq;$("stats").hidden=t!=="st";$("vote").hidden=t!=="vo";$("vban").hidden=true;
+ $("back").hidden=t==="home"||SOLO;$("back").textContent=t==="add"?"← Equipos":"← Inicio";
+ $("ttl").textContent={home:"Varadero App",eq:"Armar equipos",lock:"Armar equipos",add:"Agregar jugador",st:"Estadísticas",vo:SOLO?"🗳 Votación":"Votación"}[t];
+ if(!sinHash&&!SOLO&&location.hash!==HASH[t])history.pushState(null,"",HASH[t]||location.pathname);
+ if(t==="home")renderHome();if(t==="st")renderStats();if(t==="vo")renderVote();if(t==="add")renderAdd();
+ if(t==="lock"){$("pw").value="";$("pwerr").textContent=""}
+ setHH();
 }
-$("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){setTab(b.dataset.tab);window.scrollTo(0,0)}});
+window.addEventListener("popstate",()=>{if(P.length)setTab(deHash(),true)});
+$("back").addEventListener("click",()=>{setTab(TAB==="add"?"eq":"home");window.scrollTo(0,0)});
+// clave para armar equipos (la misma del script; se pide una vez por teléfono)
+function probarClave(){
+ const ok=$("pw").value.trim().toUpperCase()===String(CFG.token||"LEON").toUpperCase();
+ if(!ok){$("pwerr").textContent="Clave incorrecta.";return}
+ store("eqok","1");setTab("eq",true);window.scrollTo(0,0);
+}
+$("pwok").addEventListener("click",probarClave);
+$("pw").addEventListener("keydown",e=>{if(e.key==="Enter")probarClave()});
+// agregar jugador (desde Armar equipos)
+const HAB=()=>K.map((k,j)=>({k,j})).filter(o=>!/arquer|total/i.test(o.k));
+function renderAdd(){
+ const st=HAB().map(({k,j})=>{const xs=P.map(p=>p.v[j]).filter(x=>typeof x==="number"&&!isNaN(x));
+  return {k,mn:Math.min(...xs),mx:Math.max(...xs),pr:xs.reduce((a,b)=>a+b,0)/(xs.length||1)}});
+ $("addb").innerHTML=`<p class="hint" style="margin:0">Se agrega al final de la pestaña Jugadores de la hoja. Los puntajes se pueden corregir después en la hoja.</p>
+ <div class="af"><label>Nombre<input id="an" maxlength="40" autocomplete="off" placeholder="Como lo llaman en el grupo"></label>
+ ${st.map((o,i)=>`<label>${esc(o.k)}<input data-ak="${esc(o.k)}" inputmode="decimal" autocomplete="off" placeholder="ej. ${f1(o.pr)}"><small>En la lista va de ${f1(o.mn)} a ${f1(o.mx)} · promedio ${f1(o.pr)}</small></label>`).join("")}
+ <p id="aerr" class="err" style="margin:0"></p>
+ <div class="brow" style="margin:0"><button class="ghost" id="acancel">Cancelar</button><button id="aok">Agregar jugador</button></div></div>`;
+ $("an").focus();
+}
+$("addbtn").addEventListener("click",()=>{setTab("add");window.scrollTo(0,0)});
+$("addp").addEventListener("click",async e=>{
+ if(e.target.closest("#acancel")){setTab("eq");return}
+ const bt=e.target.closest("#aok");if(!bt)return;
+ const n=$("an").value.trim().replace(/\s+/g," "),err=$("aerr"),v={};
+ if(!n){err.textContent="Falta el nombre.";return}
+ if(/[\/|]/.test(n)){err.textContent='El nombre no puede tener "/" ni "|".';return}
+ if(P.some(p=>p.name.toLowerCase()===n.toLowerCase())){err.textContent=n+" ya está en la lista.";return}
+ for(const inp of document.querySelectorAll("[data-ak]")){const x=num(inp.value);if(inp.value.trim()===""||isNaN(x)||x<0||x>10){err.textContent="Falta el puntaje de "+inp.dataset.ak+" (de 0 a 10).";inp.focus();return}v[inp.dataset.ak]=x}
+ if(!CFG.script){err.textContent="La app no está conectada a la hoja.";return}
+ bt.disabled=true;bt.textContent="Agregando…";err.textContent="";
+ try{
+  const r=await fetch(CFG.script+"?action=jugador&token="+encodeURIComponent(CFG.token)+"&p="+encodeURIComponent(JSON.stringify({n,v})));
+  const d=await r.json();
+  if(!d.ok){err.textContent=d.error||"No se pudo agregar.";bt.disabled=false;bt.textContent="Agregar jugador";return}
+  // se suma enseguida en la app; la próxima lectura de la hoja lo confirma
+  const vals=K.map(k=>/^total$/i.test(k)?HAB().reduce((a,o)=>a+v[o.k],0):(v[k]!==undefined?v[k]:0));
+  P.push({name:d.nombre||n,v:vals});setTab("eq");render();toast((d.nombre||n)+" quedó agregado a la hoja.");refrescar();
+ }catch(x){err.textContent="No se pudo conectar. Revisá tu conexión e intentá de nuevo.";bt.disabled=false;bt.textContent="Agregar jugador"}
+});
+// inicio
+function renderHome(){
+ const d=new Date().toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long"});$("hoy").textContent=d.charAt(0).toUpperCase()+d.slice(1);
+ const v=VOT[0],m=lastMvp();let h="";
+ const card=(cls,ic,t,sub,attr,extra)=>`<button class="hc ${cls}" ${attr}><span class="ic" aria-hidden="true">${ic}</span><span><b>${t}</b><small>${sub}</small>${extra||""}</span>${cls==="off"?"":'<span class="go" aria-hidden="true">›</span>'}</button>`;
+ if(v)h+=card("v","🗳","Votación",esc(fjue(v.f).replace(/^juernes/,"Juernes"))+" · cierra el domingo a la medianoche",'data-go="vo"',`<span class="pill">Abierta · votaron ${v.votaron.length} de ${v.a.length+v.b.length}</span>`);
+ else if(m){const best=mvpList(m).find(x=>x.mvp);h+=`<div class="hc m"><span class="ic" aria-hidden="true">⭐</span><span><b>MVP del ${esc(fjue(m.f).replace(/^partido del /,""))}</b><small>${esc(m.mvp.length>3?m.mvp.length+" empatados":m.mvp.join(" y "))}${best&&best.v!=null?" · nota "+f1(best.v):""}</small></span><button data-mvpshare style="margin-left:auto;flex:none">Compartir</button></div>`}
+ h+=card("","📊","Estadísticas","Rankings, fichas, cara a cara y resúmenes",'data-go="st"');
+ h+=card("","⚽","Armar equipos",(eqOk()?"":"🔒 ")+"Elegí los 10 de hoy y armá equipos parejos",'data-go="eq"');
+ if(!v)h+=card("off","🗳","Votación","Abre el jueves a las 23 h, después del partido",'disabled');
+ $("homeCards").innerHTML=h;
+}
+$("homeCards").addEventListener("click",e=>{
+ if(e.target.closest("[data-mvpshare]")){const m=lastMvp();if(m)preview(drawMvp(m),"mvp-varadero.png");return}
+ const g=e.target.closest("[data-go]");if(g){VDONE=false;setTab(g.dataset.go);window.scrollTo(0,0)}
+});
+
 const fd=f=>{const m=String(f).match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+"/"+m[2]+"/"+m[1].slice(2):esc(f)};
 const f1=x=>x==null||isNaN(x)?"–":x.toFixed(1).replace(".",",");
 const pc=x=>x==null?"–":Math.round(x*100)+"%";
@@ -531,28 +618,16 @@ $("per").onchange=renderStats;
 /* ---------- votación de puntajes ---------- */
 // El script abre la votación a las 23 h del jueves del partido y la cierra a las 00 h del lunes.
 // Cada jugador del partido elige su nombre y puntúa a los 10 de 1 a 5.
-let VOT=[],PREV="eq",VF=null,VV=null,VN={},VDONE=false;
+let VOT=[],VF=null,VV=null,VN={},VDONE=false;
 const fdl=f=>{const d=new Date(f+"T12:00:00");const w=isNaN(d)?"":d.toLocaleDateString("es",{weekday:"long"});return (w?w+" ":"")+fd(f)};
 // "juernes 20/11/26" si el partido fue jueves; si no, "partido del domingo 22/11/26"
 const fjue=f=>{const d=new Date(f+"T12:00:00");return !isNaN(d)&&d.getDay()===4?"juernes "+fd(f):"partido del "+fdl(f)};
 const CRIT=["Una vergüenza, que se quede allá.","Se arrastró el 68% del tiempo, pero aparecieron chispazos.","De acuerdo a su rendimiento habitual, tuvo de las buenas y de las otras.","Por momentos parecía un jugador de fútbol.","Estaba drogado para bien."];
 const critList=()=>`<ol class="crit">${CRIT.map((c,i)=>`<li><b>${i+1}</b><span>${c}</span></li>`).join("")}</ol>`;
 const voteUrl=()=>location.origin+location.pathname+"?votar";
-function renderBanner(){
- const b=$("vban");b.classList.remove("mvp");
- if(TAB==="vo"){b.hidden=true;return}
- if(!VOT.length){
-  const m=lastMvp();
-  if(!m){b.hidden=true;return}
-  const best=mvpList(m).find(x=>x.mvp);
-  b.hidden=false;b.classList.add("mvp");
-  b.innerHTML=`<span>⭐ <b>MVP del ${esc(fjue(m.f).replace(/^partido del /,""))}:</b> ${esc(m.mvp.length>3?m.mvp.length+" empatados":m.mvp.length>1?m.mvp.slice(0,-1).join(", ")+" y "+m.mvp[m.mvp.length-1]:m.mvp[0])}${best&&best.v!=null?" ("+f1(best.v)+")":""}</span><button data-mvpshare>Compartir</button>`;
-  return;
- }
- const v=VOT[0],n=v.a.length+v.b.length;
- b.hidden=false;
- b.innerHTML=`<span>🗳 <b>Votación abierta</b> · ${esc(fjue(v.f))} · votaron ${v.votaron.length} de ${n}</span><button data-vopen>Votar</button>`;
-}
+// Los avisos de votación y MVP ahora viven en las tarjetas del inicio
+function renderBanner(){$("vban").hidden=true;if(TAB==="home")renderHome()}
+const irApp=()=>SOLO?`<p style="text-align:center;margin-top:22px"><a href="${location.pathname}" style="color:var(--mute)">Ir a la app</a></p>`:"";
 $("vban").addEventListener("click",e=>{
  if(e.target.closest("[data-vopen]")){VDONE=false;setTab("vo");window.scrollTo(0,0);return}
  if(e.target.closest("[data-mvpshare]")){const m=lastMvp();if(m)preview(drawMvp(m),"mvp-varadero.png")}
@@ -842,7 +917,7 @@ $("pv").addEventListener("click",e=>{
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("pv").hidden)$("pv").hidden=true});
 function renderVote(){
  const b=$("vbody");
- if(!VOT.length){b.innerHTML='<p class="hint">No hay ninguna votación abierta en este momento. Se abre el jueves a las 23 h, después del partido, y cierra el domingo a la medianoche.</p>';return}
+ if(!VOT.length){b.innerHTML='<p class="hint">No hay ninguna votación abierta en este momento. Se abre el jueves a las 23 h, después del partido, y cierra el domingo a la medianoche.</p>'+irApp();return}
  if(!VOT.some(v=>v.f===VF)){VF=VOT[0].f;VN={}}
  const v=VOT.find(x=>x.f===VF),all=[...v.a,...v.b];
  if(!VV){const s=fetchS("vvname");if(s&&all.includes(s))VV=s}
@@ -856,14 +931,14 @@ function renderVote(){
  else if(!VV)h+=`<div class="vintro">${intro}</div>`+plazo;
  else h+=`<div class="vintro"><details><summary>Ver criterios de puntaje</summary><div style="margin-top:8px">${intro}</div></details></div>`+plazo;
  if(VDONE){
-  h+=`<p style="font-weight:700;color:var(--ok)">✓ Listo, ${esc(VV)}: tu voto quedó guardado.</p><p class="hint">Votaron ${v.votaron.length} de ${all.length}${v.votaron.length?": "+esc(v.votaron.join(", ")):""}. ¿Falta alguien? Avisale al grupo:</p><div class="row">${share}</div>`;
+  h+=`<p style="font-weight:700;color:var(--ok)">✓ Listo, ${esc(VV)}: tu voto quedó guardado.</p><p class="hint">Votaron ${v.votaron.length} de ${all.length}${v.votaron.length?": "+esc(v.votaron.join(", ")):""}. ¿Falta alguien? Avisale al grupo:</p><div class="row">${share}</div>${irApp()}`;
  }else if(!VV){
   h+=`<h3 class="vt">¿Quién sos?</h3><div class="vwho">${all.slice().sort((x,y)=>x.localeCompare(y,"es")).map(n=>`<button class="ghost" data-vv="${esc(n)}"${v.votaron.includes(n)?" disabled":""}>${esc(n)}${v.votaron.includes(n)?" <small>✓ votó</small>":""}</button>`).join("")}</div>
   <p class="hint" style="margin-top:14px">Votaron ${v.votaron.length} de ${all.length}. ¿Falta alguien?</p>${share}`;
  }else{
   const k=all.filter(n=>VN[n]).length;
   h+=`<div class="trow" style="margin-top:4px"><span>Votás como <b>${esc(VV)}</b></span><button class="ghost" data-vv="">No soy yo</button></div>`;
-  if(v.votaron.includes(VV)){h+=`<p style="font-weight:700;color:var(--ok)">✓ Ya votaste en esta votación.</p><p class="hint">Cada uno vota una sola vez. Votaron ${v.votaron.length} de ${all.length}.</p><div class="row">${share}</div>`;b.innerHTML=h;return}
+  if(v.votaron.includes(VV)){h+=`<p style="font-weight:700;color:var(--ok)">✓ Ya votaste en esta votación.</p><p class="hint">Cada uno vota una sola vez. Votaron ${v.votaron.length} de ${all.length}.</p><div class="row">${share}</div>${irApp()}`;b.innerHTML=h;return}
   [["Equipo A",v.a,"A"],["Equipo B",v.b,"B"]].forEach(([t,l,c])=>{
    h+=`<h3 class="vt ${c}">${t}</h3>`+l.map(n=>`<div class="vr"><span class="info"><span class="n">${esc(n)}${n===VV?" <small>(vos)</small>":""}</span>${VN[n]?`<span class="cr">${VN[n]} · ${CRIT[VN[n]-1]}</span>`:""}</span><span class="stars" role="group" aria-label="Puntaje para ${esc(n)}">${[1,2,3,4,5].map(x=>`<button class="${VN[n]===x?"on":""}" data-vp="${esc(n)}" data-vs="${x}" aria-pressed="${VN[n]===x}" aria-label="${x} para ${esc(n)}: ${CRIT[x-1]}" title="${CRIT[x-1]}">${x}</button>`).join("")}</span></div>`).join("");
   });
@@ -873,7 +948,6 @@ function renderVote(){
 }
 $("vote").addEventListener("click",e=>{
  const t=e.target;
- if(t.closest("[data-vclose]")){setTab(PREV);window.scrollTo(0,0);return}
  const w=t.closest("[data-vv]");if(w){VV=w.dataset.vv||null;VN={};store("vvname",VV||"");renderVote();if(VV)window.scrollTo(0,0);return}
  const s=t.closest("[data-vp]");if(s){VN[s.dataset.vp]=+s.dataset.vs;renderVote();return}
   const go=t.closest("[data-vsend]");if(go)sendVote(go);
@@ -897,6 +971,14 @@ function refreshVotes(){
 }
 const fromJson=()=>fetch("jugadores.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{apply(d.cols,d.players,d);$("msg").textContent=""});
 const msgErr=()=>{$("msg").textContent="No se pudieron cargar los jugadores. Avisale al administrador.";$("msg").className="err"};
+// Vuelve a leer la hoja por detrás (después de agregar un jugador)
+function refrescar(){
+ if(!CFG.script)return;
+ fetch(CFG.script+"?action=base&token="+encodeURIComponent(CFG.token),{cache:"no-store"}).then(r=>r.json()).then(d=>{
+  if(!d.ok||!d.players||!d.players.length)return;const nuevo=JSON.stringify(d);
+  if(nuevo!==fetchS("f5base")){apply(d.cols,d.players,d,true);store("f5base",nuevo)}
+ }).catch(()=>{});
+}
 // Carga rápida: si hay una copia guardada en el teléfono se muestra al instante,
 // y en paralelo se piden los datos nuevos a la hoja; cuando llegan, se actualiza la pantalla.
 let COPIA=null;
@@ -910,7 +992,7 @@ fetch("config.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).catch(()=>({})
   const nuevo=JSON.stringify(d);
   if(nuevo!==COPIA)apply(d.cols,d.players,d,!!COPIA);
   $("msg").textContent="";$("upd").hidden=true;store("f5base",nuevo);
-  if(/[?&]votar\b/.test(location.search)&&VOT.length)setTab("vo");else renderBanner();
+  renderBanner();if(TAB==="vo")renderVote();
  }).catch(e=>{
   $("upd").hidden=true;
   if(COPIA){console.error("Varadero: no se pudo leer la hoja:",e);VOT=[];renderBanner();toast("Sin conexión con la hoja: uso la última copia guardada.");return}

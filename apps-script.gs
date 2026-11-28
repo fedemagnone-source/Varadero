@@ -19,6 +19,7 @@ function doGet(e) {
       return salida({ ok: true, votaciones: votacionesAbiertas(vP) });
     }
     if (p.action === "add") return salida(agregarPartido(JSON.parse(p.p)));
+    if (p.action === "jugador") return salida(agregarJugador(JSON.parse(p.p)));
     if (p.action === "votar") return salida(votar(JSON.parse(p.p)));
     return salida({ ok: false, error: "Acción desconocida" });
   } catch (err) {
@@ -39,12 +40,15 @@ function hoja(nombre) {
 function leerBase(vP) {
   const v = hoja("Jugadores").getDataRange().getValues();
   if (v.length < 2) throw new Error("La pestaña Jugadores está vacía");
-  const cols = v[0].slice(1).map(function (c) { return String(c).trim(); }).filter(Boolean);
+  // columnas de habilidades (y total); ORDEN solo sirve para ordenar la hoja y se ignora
+  const idx = [];
+  v[0].forEach(function (c, j) { const t = String(c).trim(); if (j > 0 && t && !/^orden$/i.test(t)) idx.push(j); });
+  const cols = idx.map(function (j) { return String(v[0][j]).trim(); });
   const players = [];
   for (let i = 1; i < v.length; i++) {
     const nombre = String(v[i][0]).trim();
     if (!nombre) continue;
-    const vals = cols.map(function (_, j) { return v[i][j + 1]; });
+    const vals = idx.map(function (j) { return v[i][j]; });
     if (vals.some(function (x) { return x === "" || isNaN(Number(x)); })) {
       throw new Error("Fila " + (i + 1) + " (" + nombre + "): falta un valor o no es un número");
     }
@@ -303,4 +307,49 @@ function cerrarVotaciones(v) {
     lock.releaseLock();
   }
   return cerro;
+}
+
+// ---------- Agregar jugador desde la app ----------
+// o = { n: "Nombre", v: { "ataque": 3.5, "defensa": 2.1, ... } }  (una entrada por columna de habilidad)
+// Agrega una fila al final de Jugadores. La columna total se completa con una fórmula y ORDEN queda vacía.
+function letraColumna(n) {
+  let s = "";
+  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+function agregarJugador(o) {
+  const nombre = String((o && o.n) || "").trim().replace(/\s+/g, " ");
+  if (!nombre || nombre.length > 40) throw new Error("Falta el nombre del jugador");
+  if (/[\/|]/.test(nombre)) throw new Error('El nombre no puede tener "/" ni "|"');
+  if (/^citizen( \d+)?$/i.test(nombre)) throw new Error('"Citizen" está reservado para los invitados');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const h = hoja("Jugadores");
+    const v = h.getDataRange().getValues();
+    const enc = v[0].map(function (c) { return String(c).trim(); });
+    for (let i = 1; i < v.length; i++) {
+      if (String(v[i][0]).trim().toLowerCase() === nombre.toLowerCase()) throw new Error(nombre + " ya está en la lista");
+    }
+    let fila = 2;
+    for (let i = v.length - 1; i >= 1; i--) { if (String(v[i][0]).trim()) { fila = i + 2; break; } }
+    const habil = [], valores = [];
+    let total = -1;
+    enc.forEach(function (c, j) {
+      if (j === 0) { valores.push(nombre); return; }
+      if (!c || /^orden$/i.test(c)) { valores.push(""); return; }
+      if (/^total$/i.test(c)) { total = j; valores.push(""); return; }
+      const crudo = o.v && o.v[c] !== undefined && o.v[c] !== null ? String(o.v[c]).trim() : "";
+      const x = crudo === "" ? NaN : Number(crudo.replace(",", "."));
+      if (!(x >= 0 && x <= 10)) throw new Error("Falta el puntaje de " + c + " (de 0 a 10)");
+      habil.push(j); valores.push(x);
+    });
+    if (total >= 0 && habil.length) {
+      valores[total] = "=" + habil.map(function (j) { return letraColumna(j + 1) + fila; }).join("+");
+    }
+    h.getRange(fila, 1, 1, valores.length).setValues([valores]);
+    return { ok: true, fila: fila, nombre: nombre };
+  } finally {
+    lock.releaseLock();
+  }
 }
