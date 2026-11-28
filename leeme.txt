@@ -29,6 +29,17 @@ CONFIGURACIÓN (una sola vez)
    Implementar, autorizar los permisos y copiar la URL que termina en /exec.
 4. Editá app/config.json: poné la URL en "script" y la clave en "token".
 
+CÓMO SE USA LA APP
+- Al abrir aparece el inicio con tarjetas: Votación (resaltada si está abierta) o el MVP del último juernes,
+  Estadísticas y Armar equipos. El botón "atrás" del teléfono vuelve al inicio.
+- Armar equipos pide una clave una sola vez por teléfono: es la misma "token" de app/config.json.
+  Es una protección casual: alguien con conocimientos técnicos podría ver los datos igual.
+- En Armar equipos, "＋ Jugador" pide nombre y puntajes y agrega una fila al final de la pestaña Jugadores
+  (el total se completa con una fórmula y ORDEN queda vacía para que la acomodes).
+- El link de la votación (varadero.netlify.app/?votar) abre solo la votación, sin el resto de la app.
+- La lista de "¿Quiénes juegan hoy?" se ordena sola: primero los que vinieron en los últimos 30 juernes
+  (de más a menos), después el resto por presencias totales. La columna ORDEN de Jugadores ya no hace falta.
+
 USO DIARIO
 - Jugadores: se editan directo en la pestaña Jugadores de la hoja. La app los toma cada vez que se abre.
 - Partidos: en la app, elegí una opción y tocá "Guardar en historial". Aparece una fila nueva en la pestaña Partidos.
