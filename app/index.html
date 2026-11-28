@@ -30,6 +30,7 @@ button:focus-visible,input:focus-visible,label.btn:focus-within{outline:3px soli
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
 .hint{color:var(--mute);font-size:.88rem}
 #list{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin-top:12px}
+.lsep{grid-column:1/-1;margin:10px 0 2px;padding-top:8px;border-top:1px solid var(--line);font-size:.82rem}
 .pl{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;cursor:pointer}
 .pl.off{opacity:.45;cursor:not-allowed}
 .pl.on{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent)}
@@ -230,8 +231,27 @@ function apply(cols,out,cfg,conservar){
  if(!antes||antes.firma!==JSON.stringify([K,P])){$("out").innerHTML="";cands=[]}
 }
 const norm=s=>String(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+// Orden de la lista: primero los que vinieron en los últimos JUERNES_RECIENTES partidos (de más a menos;
+// desempata los últimos 12 meses y después el total histórico); después el resto, en orden alfabético.
+const JUERNES_RECIENTES=30;let ORDL=null,ORDK="";
+function ordenLista(){
+ const k=P.length+"|"+(M?M.length:0)+"|"+P.map(p=>p.name).join(",");
+ if(ORDL&&ORDK===k)return ORDL;ORDK=k;
+ const alfa=(a,b)=>P[a].name.localeCompare(P[b].name,"es");
+ const idx=P.map((_,i)=>i);
+ if(!M||!M.length){ORDL={rec:[],resto:idx.sort(alfa)};return ORDL}
+ const ms=M.filter(m=>/^\d{4}-\d{2}-\d{2}/.test(m.f)).sort((a,b)=>String(a.f).localeCompare(String(b.f)));
+ const lim=new Date();lim.setFullYear(lim.getFullYear()-1);const desde=lim.toISOString().slice(0,10);
+ const u=new Map(),a=new Map(),t=new Map(),suma=(mp,n)=>mp.set(n,(mp.get(n)||0)+1);
+ ms.forEach((m,j)=>new Set([...m.a,...m.b]).forEach(n=>{suma(t,n);if(String(m.f)>=desde)suma(a,n);if(j>=ms.length-JUERNES_RECIENTES)suma(u,n)}));
+ const g=(mp,i)=>mp.get(P[i].name)||0;
+ ORDL={rec:idx.filter(i=>g(u,i)>0).sort((x,y)=>g(u,y)-g(u,x)||g(a,y)-g(a,x)||g(t,y)-g(t,x)||alfa(x,y)),resto:idx.filter(i=>!g(u,i)).sort(alfa)};
+ return ORDL;
+}
 function render(){
- $("list").innerHTML=P.map((p,i)=>!norm(p.name).includes(norm($("q").value))?"":`<div class="pl ${sel.has(i)?"on":""}${sel.size>=10&&!sel.has(i)?" off":""}" role="checkbox" aria-checked="${sel.has(i)}" aria-disabled="${sel.size>=10&&!sel.has(i)}" tabindex="0" data-i="${i}"><input type="checkbox" tabindex="-1" ${sel.has(i)?"checked":""} ${sel.size>=10&&!sel.has(i)?"disabled":""}><b>${esc(p.name)}</b><button class="gkb ${gk.has(i)?"on":""}" data-gk="${i}" title="Arquero" aria-pressed="${gk.has(i)}" ${sel.size>=10&&!sel.has(i)?"disabled":""}>🧤</button></div>`).join("");
+ const q=norm($("q").value),O=ordenLista(),fila=i=>{const p=P[i];return !norm(p.name).includes(q)?"":`<div class="pl ${sel.has(i)?"on":""}${sel.size>=10&&!sel.has(i)?" off":""}" role="checkbox" aria-checked="${sel.has(i)}" aria-disabled="${sel.size>=10&&!sel.has(i)}" tabindex="0" data-i="${i}"><input type="checkbox" tabindex="-1" ${sel.has(i)?"checked":""} ${sel.size>=10&&!sel.has(i)?"disabled":""}><b>${esc(p.name)}</b><button class="gkb ${gk.has(i)?"on":""}" data-gk="${i}" title="Arquero" aria-pressed="${gk.has(i)}" ${sel.size>=10&&!sel.has(i)?"disabled":""}>🧤</button></div>`};
+ const r1=O.rec.map(fila).join(""),r2=O.resto.map(fila).join("");
+ $("list").innerHTML=r1+(r1&&r2?`<p class="hint lsep">Hace tiempo que no vienen</p>`:"")+r2;
  if(!$("list").innerHTML.trim())$("list").innerHTML='<p class="hint">Sin resultados.</p>';
  $("cnt").textContent="("+sel.size+" de 10)";$("cnt2").textContent=sel.size+"/10";
 }
