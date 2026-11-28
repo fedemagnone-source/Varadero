@@ -401,14 +401,17 @@ function inPer(m,p){
 // "Citizen", "Citizen 2"… son invitados: juegan (y suman goles a su equipo) pero no figuran en las estadísticas
 const esCit=n=>/^citizen( \d+)?$/i.test(String(n).trim());
 const sinCit=l=>l.filter(n=>!esCit(n));
-// Antes de esta fecha los equipos cargados no son los reales: esos partidos cuentan para presencias,
-// pero no para "compañero más frecuente" (dupla, villano y cara a cara ya usan solo partidos con goles)
+// Antes de esta fecha los equipos cargados no son los reales: esos partidos cuentan SOLO para presencias.
+// Aunque tengan goles, notas o MVP cargados, no se usan para resultados, notas, MVP, compañeros, duplas,
+// villano, cara a cara ni goles del resumen del año.
 const EQUIPOS_REALES_DESDE="2024-01-01";
+const real=m=>String(m.f)>=EQUIPOS_REALES_DESDE;
+const conRes=m=>real(m)&&m.ga!=null&&m.gb!=null;
 function apps(ms){
  const out=[];
- ms.forEach((m,mi)=>{const has=m.ga!=null&&m.gb!=null;
+ ms.forEach((m,mi)=>{const has=conRes(m),R=real(m);
   [[m.a,m.b,m.ga,m.gb,m.pa],[m.b,m.a,m.gb,m.ga,m.pb]].forEach(([t0,o0,f,c,nt])=>{const t=sinCit(t0),o=sinCit(o0);t0.forEach((n,i)=>!esCit(n)&&out.push({n,m,mi,t,o,f,c,has,
-   r:has?(f>c?"G":f<c?"P":"E"):null,nota:nt&&nt[i]!=null?nt[i]:null,mvp:(m.mvp||[]).includes(n),arq:(m.g||[]).includes(n)}))});
+   r:has?(f>c?"G":f<c?"P":"E"):null,nota:R&&nt&&nt[i]!=null?nt[i]:null,mvp:R&&(m.mvp||[]).includes(n),arq:R&&(m.g||[]).includes(n)}))});
  });
  return out;
 }
@@ -440,7 +443,7 @@ function renderStats(){
  if(DET&&!T.some(s=>s.name===DET))DET=null;
  if(DET&&CMP!==null){b.innerHTML=CMP?cara(DET,CMP,ms):`<div class="fbar"><button class="back" data-cmpx>← Volver a la ficha</button></div><h3 style="font:800 1.2rem Georgia,serif;margin:14px 0 4px">Comparar a ${esc(DET)} con…</h3><p class="hint" style="margin:0 0 10px">Elegí un jugador para ver el cara a cara.</p><div class="vwho">${T.filter(t=>t.name!==DET).map(t=>t.name).sort((x,y)=>x.localeCompare(y,"es")).map(n=>`<button class="ghost" data-cmp="${esc(n)}">${esc(n)}</button>`).join("")}</div>`;return}
  if(DET){b.innerHTML=ficha(DET,ms);return}
- const wr=ms.filter(m=>m.ga!=null),gt=wr.reduce((a,m)=>a+m.ga+m.gb,0);
+ const wr=ms.filter(conRes),gt=wr.reduce((a,m)=>a+m.ga+m.gb,0);
  let h=`<p class="sum">${ms.length} partidos${ms.length>wr.length?` (${ms.length-wr.length} sin resultado)`:""}${wr.length?` · ${f1(gt/wr.length)} goles por partido`:""}</p>
  ${/^y\d{4}$/.test(sp.value)?`<div class="yc"><span><b>Resumen ${sp.value.slice(1)}</b><small>El que más vino, MVP, dupla del año y más</small></span><button data-share-an>📤 Compartir</button></div>`:""}
  <div class="chips" role="group" aria-label="Ranking">${RANKS.map(r=>`<button class="${r.k===RK?"":"ghost"}" data-rk="${r.k}" aria-pressed="${r.k===RK}">${r.l}</button>`).join("")}<button class="ghost" data-share-rk style="margin-left:auto">📤 Compartir</button></div>`;
@@ -465,7 +468,7 @@ function ficha(name,ms){
  const tm=new Map(),rv=new Map(),all=new Map();   // tm y rv: solo partidos con resultado; all: todos (compañero más frecuente)
  const add=(mp,n,r)=>{if(!mp.has(n))mp.set(n,{n,j:0,g:0,p:0});const o=mp.get(n);o.j++;if(r==="G")o.g++;if(r==="P")o.p++};
  mine.filter(x=>x.has).forEach(x=>{x.t.forEach(n=>n!==name&&add(tm,n,x.r));x.o.forEach(n=>add(rv,n,x.r))});
- mine.filter(x=>String(x.m.f)>=EQUIPOS_REALES_DESDE).forEach(x=>x.t.forEach(n=>n!==name&&add(all,n,null)));
+ mine.filter(x=>real(x.m)).forEach(x=>x.t.forEach(n=>n!==name&&add(all,n,null)));
  // mejor dupla y villano: mínimo 5 partidos con resultado juntos / enfrentados
  const best=(mp,k)=>[...mp.values()].filter(o=>o.j>=5).sort((x,y)=>y[k]/y.j-x[k]/x.j||y.j-x.j)[0];
  const freq=[...all.values()].sort((x,y)=>y.j-x.j)[0],bt=best(tm,"g"),bn=best(rv,"p");
@@ -647,7 +650,7 @@ function drawRanking({R,L,per}){
 function cara(A,B,ms){
  const T=table(ms),f=n=>{const t=T.find(x=>x.name===n);return {...t,pct:t.jr?t.g/t.jr:null,dg:t.gf-t.gc}},a=f(A),b=f(B);
  const jun=[0,0,0],vs=[0,0,0];
- ms.forEach(m=>{if(m.ga==null||m.gb==null)return;const ia=m.a.includes(A)?1:m.b.includes(A)?2:0,ib=m.a.includes(B)?1:m.b.includes(B)?2:0;if(!ia||!ib)return;
+ ms.forEach(m=>{if(!conRes(m))return;const ia=m.a.includes(A)?1:m.b.includes(A)?2:0,ib=m.a.includes(B)?1:m.b.includes(B)?2:0;if(!ia||!ib)return;
   const fa=ia===1?m.ga:m.gb,ca=ia===1?m.gb:m.ga;
   if(ia===ib){jun[0]++;if(fa>ca)jun[1]++;else if(fa===ca)jun[2]++}else{vs[0]++;if(fa>ca)vs[1]++;else if(fa<ca)vs[2]++}});
  const sp=$("per");LASTVS={a,b,jun,vs,per:sp.options[sp.selectedIndex]?sp.options[sp.selectedIndex].text:"Todo"};
@@ -661,7 +664,7 @@ function cara(A,B,ms){
 }
 // ---- resumen del año ----
 function resumenAnio(ms,y){
- const T=table(ms),wr=ms.filter(m=>m.ga!=null&&m.gb!=null),goles=wr.reduce((a,m)=>a+m.ga+m.gb,0);
+ const T=table(ms),wr=ms.filter(conRes),goles=wr.reduce((a,m)=>a+m.ga+m.gb,0);
  // el máximo; si hay empate, desempata d (ej. más partidos); si sigue empatado, se nombran todos
  const top=(l,v,d)=>{l=l.filter(t=>v(t)!=null);if(!l.length)return null;const mx=Math.max(...l.map(v));let w=l.filter(t=>v(t)===mx);
   if(d&&w.length>1){const md=Math.max(...w.map(d));w=w.filter(t=>d(t)===md)}
