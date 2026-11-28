@@ -458,9 +458,9 @@ const HAB=()=>K.map((k,j)=>({k,j})).filter(o=>!/arquer|total/i.test(o.k));
 function renderAdd(){
  const st=HAB().map(({k,j})=>{const xs=P.map(p=>p.v[j]).filter(x=>typeof x==="number"&&!isNaN(x));
   return {k,mn:Math.min(...xs),mx:Math.max(...xs),pr:xs.reduce((a,b)=>a+b,0)/(xs.length||1)}});
- $("addb").innerHTML=`<p class="hint" style="margin:0">Se agrega al final de la pestaña Jugadores de la hoja. Los puntajes se pueden corregir después en la hoja.</p>
+ $("addb").innerHTML=`<p class="hint" style="margin:0">Puntuá cada habilidad <b>de 1 a 5</b> (se pueden usar decimales, por ejemplo 3,5). Se agrega al final de la pestaña Jugadores de la hoja y los puntajes se pueden ajustar después ahí.</p>
  <div class="af"><label>Nombre<input id="an" maxlength="40" autocomplete="off" placeholder="Como lo llaman en el grupo"></label>
- ${st.map((o,i)=>`<label>${esc(o.k)}<input data-ak="${esc(o.k)}" inputmode="decimal" autocomplete="off" placeholder="ej. ${f1(o.pr)}"><small>En la lista va de ${f1(o.mn)} a ${f1(o.mx)} · promedio ${f1(o.pr)}</small></label>`).join("")}
+ ${st.map((o,i)=>`<label>${esc(o.k)}<input data-ak="${esc(o.k)}" inputmode="decimal" autocomplete="off" placeholder="de 1 a 5"><small>Promedio de la lista: ${f1(o.pr)}</small></label>`).join("")}
  <p id="aerr" class="err" style="margin:0"></p>
  <div class="brow" style="margin:0"><button class="ghost" id="acancel">Cancelar</button><button id="aok">Agregar jugador</button></div></div>`;
  $("an").focus();
@@ -473,7 +473,7 @@ $("addp").addEventListener("click",async e=>{
  if(!n){err.textContent="Falta el nombre.";return}
  if(/[\/|]/.test(n)){err.textContent='El nombre no puede tener "/" ni "|".';return}
  if(P.some(p=>p.name.toLowerCase()===n.toLowerCase())){err.textContent=n+" ya está en la lista.";return}
- for(const inp of document.querySelectorAll("[data-ak]")){const x=num(inp.value);if(inp.value.trim()===""||isNaN(x)||x<0||x>10){err.textContent="Falta el puntaje de "+inp.dataset.ak+" (de 0 a 10).";inp.focus();return}v[inp.dataset.ak]=x}
+ for(const inp of document.querySelectorAll("[data-ak]")){const x=num(inp.value);if(inp.value.trim()===""||isNaN(x)||x<1||x>5){err.textContent="El puntaje de "+inp.dataset.ak+" tiene que ser de 1 a 5.";inp.focus();return}v[inp.dataset.ak]=x}
  if(!CFG.script){err.textContent="La app no está conectada a la hoja.";return}
  bt.disabled=true;bt.textContent="Agregando…";err.textContent="";
  try{

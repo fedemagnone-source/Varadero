@@ -341,7 +341,7 @@ function agregarJugador(o) {
       if (/^total$/i.test(c)) { total = j; valores.push(""); return; }
       const crudo = o.v && o.v[c] !== undefined && o.v[c] !== null ? String(o.v[c]).trim() : "";
       const x = crudo === "" ? NaN : Number(crudo.replace(",", "."));
-      if (!(x >= 0 && x <= 10)) throw new Error("Falta el puntaje de " + c + " (de 0 a 10)");
+      if (!(x >= 1 && x <= 5)) throw new Error("El puntaje de " + c + " tiene que ser de 1 a 5");
       habil.push(j); valores.push(x);
     });
     if (total >= 0 && habil.length) {
