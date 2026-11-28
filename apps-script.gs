@@ -11,11 +11,14 @@ function doGet(e) {
   if (p.token !== TOKEN) return salida({ ok: false, error: "Clave incorrecta" });
   try {
     if (p.action === "base" || p.action === "votacion") {
-      try { cerrarVotaciones(); } catch (err) { console.error(err); }
+      // La pestaña Partidos se lee una sola vez por pedido (se vuelve a leer solo si se cerró una votación)
+      const hP = SpreadsheetApp.getActive().getSheetByName("Partidos");
+      let vP = hP ? hP.getDataRange().getValues() : [];
+      try { if (hP && cerrarVotaciones(vP)) vP = hP.getDataRange().getValues(); } catch (err) { console.error(err); }
+      if (p.action === "base") return salida(leerBase(vP));
+      return salida({ ok: true, votaciones: votacionesAbiertas(vP) });
     }
-    if (p.action === "base") return salida(leerBase());
     if (p.action === "add") return salida(agregarPartido(JSON.parse(p.p)));
-    if (p.action === "votacion") return salida({ ok: true, votaciones: votacionesAbiertas() });
     if (p.action === "votar") return salida(votar(JSON.parse(p.p)));
     return salida({ ok: false, error: "Acción desconocida" });
   } catch (err) {
@@ -33,7 +36,7 @@ function hoja(nombre) {
   return h;
 }
 
-function leerBase() {
+function leerBase(vP) {
   const v = hoja("Jugadores").getDataRange().getValues();
   if (v.length < 2) throw new Error("La pestaña Jugadores está vacía");
   const cols = v[0].slice(1).map(function (c) { return String(c).trim(); }).filter(Boolean);
@@ -61,17 +64,19 @@ function leerBase() {
     players: players,
     fis: aj["columna_fisico"] ? String(aj["columna_fisico"]).trim() : null,
     bonus: isNaN(bonus) ? 0.5 : bonus,
-    partidos: leerPartidos(),
-    votaciones: (function () { try { return votacionesAbiertas(); } catch (err) { return []; } })()
+    partidos: leerPartidos(vP),
+    votaciones: (function () { try { return votacionesAbiertas(vP); } catch (err) { return []; } })()
   };
 }
 
 // Historial para las estadísticas. Las columnas se buscan por su encabezado:
 // fecha | equipo_a | equipo_b | goles_a | goles_b | arqueros | registrado | mvp | puntajes_a | puntajes_b
-function leerPartidos() {
-  const h = SpreadsheetApp.getActive().getSheetByName("Partidos");
-  if (!h) return [];
-  const v = h.getDataRange().getValues();
+function leerPartidos(v) {
+  if (!v) {
+    const h = SpreadsheetApp.getActive().getSheetByName("Partidos");
+    if (!h) return [];
+    v = h.getDataRange().getValues();
+  }
   if (v.length < 2) return [];
   const enc = v[0].map(function (c) { return String(c).trim().toLowerCase(); });
   const col = function (n, def) { const i = enc.indexOf(n); return i >= 0 ? i : def; };
@@ -175,9 +180,9 @@ function sumarDias(iso, n) {
 }
 
 // Pestaña Partidos con sus columnas (por encabezado)
-function tablaPartidos() {
+function tablaPartidos(v) {
   const h = hoja("Partidos");
-  const v = h.getDataRange().getValues();
+  v = v || h.getDataRange().getValues();
   const enc = (v[0] || []).map(function (c) { return String(c).trim().toLowerCase(); });
   const C = { f: enc.indexOf("fecha"), a: enc.indexOf("equipo_a"), b: enc.indexOf("equipo_b"),
     mvp: enc.indexOf("mvp"), pa: enc.indexOf("puntajes_a"), pb: enc.indexOf("puntajes_b") };
@@ -206,8 +211,8 @@ function estadoFila(T, i, hoy) {
   return "vencida";
 }
 
-function votacionesAbiertas() {
-  const T = tablaPartidos(), hoy = ahora(), out = [];
+function votacionesAbiertas(v) {
+  const T = tablaPartidos(v), hoy = ahora(), out = [];
   for (let i = 1; i < T.v.length; i++) {
     if (estadoFila(T, i, hoy) !== "abierta") continue;
     const f = fechaISO(T.v[i][T.C.f]);
@@ -250,19 +255,34 @@ function votar(o) {
   }
 }
 
-// Cierra las votaciones vencidas: escribe promedios y MVP en Partidos y borra los totales
-function cerrarVotaciones() {
+// Cierra las votaciones vencidas: escribe promedios y MVP en Partidos y borra los totales.
+// v (opcional): la pestaña Partidos ya leída. Primero revisa sin bloquear si hay algo para cerrar
+// (una sola lectura de las propiedades); solo si hay, bloquea y cierra. Devuelve true si cerró alguna.
+function cerrarVotaciones(v) {
+  if (!Array.isArray(v)) v = undefined;   // un activador le pasa su propio evento
+  const props = PropertiesService.getScriptProperties();
+  const pendientes = Object.keys(props.getProperties()).filter(function (k) { return k.indexOf("voto_") === 0; });
+  if (!pendientes.length) return false;
+  const hoy = ahora();
+  const vencida = function (T) {
+    for (let i = 1; i < T.v.length; i++) {
+      if (estadoFila(T, i, hoy) === "vencida" && pendientes.indexOf(claveVoto(fechaISO(T.v[i][T.C.f]))) >= 0) return true;
+    }
+    return false;
+  };
+  if (!vencida(tablaPartidos(v))) return false;
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
+  let cerro = false;
   try {
-    const props = PropertiesService.getScriptProperties();
-    const T = tablaPartidos(), hoy = ahora();
+    const todas = props.getProperties();
+    const T = tablaPartidos();
     for (let i = 1; i < T.v.length; i++) {
       if (estadoFila(T, i, hoy) !== "vencida") continue;
       const f = fechaISO(T.v[i][T.C.f]);
-      if (!props.getProperty(claveVoto(f))) continue;
-      const t = leerTotales(f);
-      if (!t.v.length) { props.deleteProperty(claveVoto(f)); continue; }
+      if (!todas[claveVoto(f)]) continue;
+      const t = JSON.parse(todas[claveVoto(f)]);
+      if (!t.v || !t.v.length) { props.deleteProperty(claveVoto(f)); continue; }
       const a = lista(T.v[i][T.C.a]), b = lista(T.v[i][T.C.b]), prom = {};
       a.concat(b).forEach(function (p) { prom[p] = t.c[p] ? t.s[p] / t.c[p] : null; });
       const txt = function (eq) {
@@ -277,8 +297,10 @@ function cerrarVotaciones() {
         T.h.getRange(i + 1, T.C.mvp + 1).setValue(vals.filter(function (p) { return Math.abs(prom[p] - mx) < 1e-9; }).join(" / "));
       }
       props.deleteProperty(claveVoto(f));
+      cerro = true;
     }
   } finally {
     lock.releaseLock();
   }
+  return cerro;
 }

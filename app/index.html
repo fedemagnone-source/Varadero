@@ -112,6 +112,11 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area
 .duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:10px}
 .duo div{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.88rem}.duo small{display:block;color:var(--mute);font-size:.75rem}
 .vban{display:flex;align-items:center;justify-content:space-between;gap:10px;background:color-mix(in srgb,var(--a) 12%,var(--card));border:1px solid var(--a);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:.92rem}
+.upd{font:600 .72rem "Trebuchet MS",system-ui,sans-serif;color:var(--mute);vertical-align:middle;margin-left:6px;letter-spacing:0}
+.upd::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:5px;vertical-align:1px;animation:latir 1s ease-in-out infinite alternate}
+@keyframes latir{from{opacity:.25}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.upd::before{animation:none}}
+.upd[hidden]{display:none}
 .vban[hidden]{display:none}.vban button{flex:none}
 .vban.mvp{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,var(--card))}
 #pv{position:fixed;inset:0;z-index:60;background:rgba(10,15,12,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px}
@@ -149,7 +154,7 @@ a.btn{display:inline-block;font-weight:600;font-size:.95rem;border-radius:8px;pa
 <body>
 <main>
 <header id="top">
- <div class="trow"><h1>Varadero App</h1><span id="cnt2"></span></div>
+ <div class="trow"><h1>Varadero App <span id="upd" class="upd" hidden>actualizando…</span></h1><span id="cnt2"></span></div>
  <div class="tabs" id="tabs" hidden><button data-tab="eq">Equipos</button><button class="ghost" data-tab="st">Estadísticas</button></div>
  <div id="ctl" hidden>
   <input id="q" type="search" placeholder="Buscar jugador…" autocomplete="off" aria-label="Buscar jugador">
@@ -191,15 +196,20 @@ const avg=p=>p.v.reduce((a,b)=>a+b,0)/p.v.length;
 function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function fetchS(k){try{return localStorage.getItem(k)}catch(e){return null}}
 
-function apply(cols,out,cfg){
+// keep=true: actualización por detrás; conserva la selección de jugadores y arqueros, y los equipos armados
+// si los jugadores no cambiaron
+function apply(cols,out,cfg,conservar){
+ const antes=conservar&&P.length?{sel:[...sel].map(i=>P[i]&&P[i].name),gk:[...gk].map(i=>P[i]&&P[i].name),firma:JSON.stringify([K,P])}:null;
  // ORDEN (y cualquier columna "orden") solo sirve para ordenar la hoja: no es una habilidad
  const keep=cols.map((_,j)=>j).filter(j=>!/^orden$/i.test(String(cols[j]).trim()));
  cols=keep.map(j=>cols[j]);out=out.map(p=>({...p,v:keep.map(j=>p.v[j])}));
  K=cols;P=out;M=cfg&&Array.isArray(cfg.partidos)?cfg.partidos:null;VOT=cfg&&Array.isArray(cfg.votaciones)?cfg.votaciones:[];
  sel=new Set(P.length<=10?P.map((_,i)=>i):[]);gk=new Set();
+ if(antes){const ix=n=>P.findIndex(p=>p.name===n);antes.sel.map(ix).filter(i=>i>=0).forEach(i=>sel.add(i));antes.gk.map(ix).filter(i=>i>=0&&sel.has(i)).forEach(i=>gk.add(i))}
  $("fis").innerHTML=K.map((k,i)=>`<option value="${i}">${esc(k)}</option>`).join("");
  let g=cfg&&cfg.fis!=null?K.indexOf(cfg.fis):-1;if(g<0)g=K.findIndex(k=>/f[ií]s|physic|stamina|resist/i.test(k));if(g>=0)$("fis").value=g;if(cfg&&cfg.bonus!=null)$("bonus").value=cfg.bonus;
- $("tabs").hidden=false;setTab(TAB);render();$("out").innerHTML="";
+ $("tabs").hidden=false;setTab(TAB);render();
+ if(!antes||antes.firma!==JSON.stringify([K,P])){$("out").innerHTML="";cands=[]}
 }
 const norm=s=>String(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 function render(){
@@ -536,7 +546,7 @@ function renderBanner(){
   if(!m){b.hidden=true;return}
   const best=mvpList(m).find(x=>x.mvp);
   b.hidden=false;b.classList.add("mvp");
-  b.innerHTML=`<span>⭐ <b>MVP del ${esc(fjue(m.f).replace(/^partido del /,""))}:</b> ${esc(m.mvp.join(" y "))}${best&&best.v!=null?" ("+f1(best.v)+")":""}</span><button data-mvpshare>Compartir</button>`;
+  b.innerHTML=`<span>⭐ <b>MVP del ${esc(fjue(m.f).replace(/^partido del /,""))}:</b> ${esc(m.mvp.length>3?m.mvp.length+" empatados":m.mvp.length>1?m.mvp.slice(0,-1).join(", ")+" y "+m.mvp[m.mvp.length-1]:m.mvp[0])}${best&&best.v!=null?" ("+f1(best.v)+")":""}</span><button data-mvpshare>Compartir</button>`;
   return;
  }
  const v=VOT[0],n=v.a.length+v.b.length;
@@ -887,15 +897,23 @@ function refreshVotes(){
 }
 const fromJson=()=>fetch("jugadores.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{apply(d.cols,d.players,d);$("msg").textContent=""});
 const msgErr=()=>{$("msg").textContent="No se pudieron cargar los jugadores. Avisale al administrador.";$("msg").className="err"};
+// Carga rápida: si hay una copia guardada en el teléfono se muestra al instante,
+// y en paralelo se piden los datos nuevos a la hoja; cuando llegan, se actualiza la pantalla.
+let COPIA=null;
+try{const c0=JSON.parse(fetchS("f5base")||"null");if(c0&&c0.cols&&c0.players&&c0.players.length){apply(c0.cols,c0.players,c0);$("msg").textContent="";COPIA=fetchS("f5base");$("upd").hidden=false}}catch(e){}
 fetch("config.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).catch(()=>({})).then(c=>{
  CFG={script:((c&&c.script)||"").trim(),token:((c&&c.token)||"").trim()};
- if(!CFG.script)return fromJson().catch(msgErr);
+ if(!CFG.script){$("upd").hidden=true;return COPIA?null:fromJson().catch(msgErr)}
  return fetch(CFG.script+"?action=base&token="+encodeURIComponent(CFG.token),{cache:"no-store"}).then(r=>r.json()).then(d=>{
   if(!d.ok)throw d.error||0;
   if(!d.players||!d.players.length)throw "La hoja no tiene jugadores.";
-  apply(d.cols,d.players,d);$("msg").textContent="";store("f5base",JSON.stringify(d));
+  const nuevo=JSON.stringify(d);
+  if(nuevo!==COPIA)apply(d.cols,d.players,d,!!COPIA);
+  $("msg").textContent="";$("upd").hidden=true;store("f5base",nuevo);
   if(/[?&]votar\b/.test(location.search)&&VOT.length)setTab("vo");else renderBanner();
  }).catch(e=>{
+  $("upd").hidden=true;
+  if(COPIA){console.error("Varadero: no se pudo leer la hoja:",e);VOT=[];renderBanner();toast("Sin conexión con la hoja: uso la última copia guardada.");return}
   console.error("Varadero: no se pudo leer la hoja:",e);
   const raw=typeof e==="string"?e:((e&&e.message)||"");
   const why=typeof e==="string"?e:(/JSON|Unexpected token|<!DOCTYPE/i.test(raw)?"la dirección del script no devolvió datos: revisá que sea la URL /exec y que el acceso sea \"Cualquier persona\"":(/fetch|network|load failed/i.test(raw)?"el navegador no pudo conectar con Google":(raw||"sin respuesta")));
