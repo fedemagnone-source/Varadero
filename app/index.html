@@ -232,7 +232,8 @@ function apply(cols,out,cfg,conservar){
 }
 const norm=s=>String(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 // Orden de la lista: primero los que vinieron en los últimos JUERNES_RECIENTES partidos (de más a menos;
-// desempata los últimos 12 meses y después el total histórico); después el resto, en orden alfabético.
+// desempata los últimos 12 meses y después el total histórico); después el resto, por presencias totales
+// (los que nunca jugaron, al final en orden alfabético).
 const JUERNES_RECIENTES=30;let ORDL=null,ORDK="";
 function ordenLista(){
  const k=P.length+"|"+(M?M.length:0)+"|"+P.map(p=>p.name).join(",");
@@ -245,7 +246,7 @@ function ordenLista(){
  const u=new Map(),a=new Map(),t=new Map(),suma=(mp,n)=>mp.set(n,(mp.get(n)||0)+1);
  ms.forEach((m,j)=>new Set([...m.a,...m.b]).forEach(n=>{suma(t,n);if(String(m.f)>=desde)suma(a,n);if(j>=ms.length-JUERNES_RECIENTES)suma(u,n)}));
  const g=(mp,i)=>mp.get(P[i].name)||0;
- ORDL={rec:idx.filter(i=>g(u,i)>0).sort((x,y)=>g(u,y)-g(u,x)||g(a,y)-g(a,x)||g(t,y)-g(t,x)||alfa(x,y)),resto:idx.filter(i=>!g(u,i)).sort(alfa)};
+ ORDL={rec:idx.filter(i=>g(u,i)>0).sort((x,y)=>g(u,y)-g(u,x)||g(a,y)-g(a,x)||g(t,y)-g(t,x)||alfa(x,y)),resto:idx.filter(i=>!g(u,i)).sort((x,y)=>g(t,y)-g(t,x)||alfa(x,y))};
  return ORDL;
 }
 function render(){
