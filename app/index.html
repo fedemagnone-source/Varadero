@@ -445,7 +445,7 @@ function renderStats(){
  if(DET){b.innerHTML=ficha(DET,ms);return}
  const wr=ms.filter(conRes),gt=wr.reduce((a,m)=>a+m.ga+m.gb,0);
  let h=`<p class="sum">${ms.length} partidos${ms.length>wr.length?` (${ms.length-wr.length} sin resultado)`:""}${wr.length?` · ${f1(gt/wr.length)} goles por partido`:""}</p>
- ${/^y\d{4}$/.test(sp.value)?`<div class="yc"><span><b>Resumen ${sp.value.slice(1)}</b><small>El que más vino, MVP, dupla del año y más</small></span><button data-share-an>📤 Compartir</button></div>`:""}
+ ${/^y\d{4}$/.test(sp.value)?`<div class="yc"><span><b>Resumen ${sp.value.slice(1)}</b><small>${+sp.value.slice(1)<+EQUIPOS_REALES_DESDE.slice(0,4)?"Podio de presencias, rachas, debutantes y fieles":"El que más vino, MVP, dupla del año y más"}</small></span><button data-share-an>📤 Compartir</button></div>`:""}
  <div class="chips" role="group" aria-label="Ranking">${RANKS.map(r=>`<button class="${r.k===RK?"":"ghost"}" data-rk="${r.k}" aria-pressed="${r.k===RK}">${r.l}</button>`).join("")}<button class="ghost" data-share-rk style="margin-left:auto">📤 Compartir</button></div>`;
  const R=RANKS.find(r=>r.k===RK);
  const L=T.filter(R.ok).sort((x,y)=>R.v(y)-R.v(x)||y.pj-x.pj||x.name.localeCompare(y.name,"es"));
@@ -663,7 +663,29 @@ function cara(A,B,ms){
  <p style="text-align:center;font:700 1rem Georgia,serif;margin:6px 0 0">${frase}</p>`;
 }
 // ---- resumen del año ----
+// Resumen de un año anterior a 2024: solo presencias
+function resumenPres(ms,y){
+ ms=ms.slice().sort((a,b)=>String(a.f).localeCompare(String(b.f)));
+ const jug=m=>new Set(sinCit([...m.a,...m.b]));
+ const cnt=new Map();ms.forEach(m=>jug(m).forEach(n=>cnt.set(n,(cnt.get(n)||0)+1)));
+ const L=[...cnt].map(([n,v])=>({n,v})).sort((a,b)=>b.v-a.v||a.n.localeCompare(b.n,"es"));
+ // racha: juernes seguidos sin faltar dentro del año
+ const rach=new Map();
+ [...cnt.keys()].forEach(n=>{let c=0,mx=0;ms.forEach(m=>{if(jug(m).has(n)){c++;if(c>mx)mx=c}else c=0});rach.set(n,mx)});
+ const mr=Math.max(0,...rach.values()),rn=[...rach].filter(([,v])=>v===mr).map(([n])=>n);
+ // debutantes: primer partido de su vida en este año
+ const primero=new Map();(M||[]).forEach(m=>jug(m).forEach(n=>{const f=String(m.f);if(!primero.has(n)||f<primero.get(n))primero.set(n,f)}));
+ const inicio=[...primero.values()].sort()[0]||"",primerAnio=inicio.startsWith(y);
+ const deb=primerAnio?[]:L.filter(o=>String(primero.get(o.n)||"").startsWith(y));
+ const fieles=L.filter(o=>o.v>ms.length/2);
+ const yjuntar=l=>l.length>1?l.slice(0,-1).join(", ")+" y "+l[l.length-1]:l[0]||"";
+ // podio con empates: hasta 3 escalones; los empatados comparten escalón
+ const vals=[...new Set(L.map(o=>o.v))].slice(0,3),podio=[];let pos=1;
+ vals.forEach(v=>{if(pos>3)return;const ns=L.filter(o=>o.v===v).map(o=>o.n);podio.push({pos,n:yjuntar(ns),v,k:ns.length});pos+=ns.length});
+ return {pres:true,y,partidos:ms.length,jugadores:L.length,podio,primerAnio,inicio,racha:{n:yjuntar(rn.slice(0,3))+(rn.length>3?" y otros":""),v:mr},deb,fieles};
+}
 function resumenAnio(ms,y){
+ if(+y<+EQUIPOS_REALES_DESDE.slice(0,4))return resumenPres(ms,y);
  const T=table(ms),wr=ms.filter(conRes),goles=wr.reduce((a,m)=>a+m.ga+m.gb,0);
  // el máximo; si hay empate, desempata d (ej. más partidos); si sigue empatado, se nombran todos
  const top=(l,v,d)=>{l=l.filter(t=>v(t)!=null);if(!l.length)return null;const mx=Math.max(...l.map(v));let w=l.filter(t=>v(t)===mx);
@@ -679,6 +701,7 @@ function resumenAnio(ms,y){
   pct:top(el.filter(t=>t.jr>=5),t=>t.g/t.jr,t=>t.jr),nota:top(el.filter(t=>t.nn>=5),t=>t.nota,t=>t.nn),dupla,gol};
 }
 function drawAnio(o){
+ if(o.pres)return drawAnioPres(o);
  const [c,x]=lienzo();
  x.fillStyle=C2.green;x.fillRect(0,0,540,150);
  tx(x,"RESUMEN DEL AÑO",28,36,"700 12px "+FS2,"rgba(255,255,255,.82)");
@@ -700,6 +723,34 @@ function drawAnio(o){
   tx(x,v||"–",X+14,Y+80,"800 21px "+FG2,C2.ink,"left",214);if(d)tx(x,d,X+14,Y+102,"13px "+FS2,C2.mute,"left",214);
  });
  pie(x,"resumen "+o.y);
+ return c;
+}
+function drawAnioPres(o){
+ const [c,x]=lienzo();
+ x.fillStyle=C2.green;x.fillRect(0,0,540,150);
+ tx(x,"RESUMEN DEL AÑO",28,36,"700 12px "+FS2,"rgba(255,255,255,.82)");
+ const w=tx(x,o.y,26,120,"800 76px "+FG2,"#fff");tx(x,"en Varadero",40+w,112,"17px "+FS2,"rgba(255,255,255,.92)");
+ [[o.partidos,"juernes"],[o.jugadores,"jugadores distintos"],o.primerAnio?[fd(o.inicio).slice(0,5),"primer juernes registrado"]:[o.deb.length,o.deb.length===1?"debutante":"debutantes"]].forEach(([v,l],i)=>{
+  const X=24+i*168;rr(x,X,166,156,66,14);x.fillStyle=C2.green;x.fill();
+  tx(x,v,X+78,202,"800 30px "+FG2,"#fff","center");tx(x,l,X+78,222,"12px "+FS2,"rgba(255,255,255,.88)","center");
+ });
+ const caja=(X,Y,W,H)=>{rr(x,X,Y,W,H,14);x.fillStyle=C2.card;x.fill();x.strokeStyle=C2.line;x.lineWidth=1;x.stroke()};
+ // podio
+ caja(24,244,492,128);tx(x,"🏆",38,274,"20px "+FS2,C2.ink);tx(x,"PODIO DE PRESENCIAS",66,272,"700 11px "+FS2,C2.mute);
+ const nP=o.podio.length,cw=492/nP;
+ o.podio.forEach((p,i)=>{const X=24+i*cw+cw/2,col=p.pos===1?C2.gold:C2.ink;
+  tx(x,p.pos+"°"+(p.k>1?" (empate)":""),X,304,"800 14px "+FS2,p.pos===1?C2.gold:C2.mute,"center");
+  const fs=p.k>2?15:20;tx(x,p.n,X,330,`800 ${fs}px ${FG2}`,col,"center",cw-14);
+  tx(x,p.v+" de "+o.partidos,X,354,"13px "+FS2,C2.mute,"center")});
+ const box=(X,Y,W,ic,l,v,d)=>{caja(X,Y,W,112);tx(x,ic,X+14,Y+30,"20px "+FS2,C2.ink);tx(x,l.toUpperCase(),X+14,Y+52,"700 11px "+FS2,C2.mute,"left",W-28);
+  tx(x,v||"–",X+14,Y+80,"800 20px "+FG2,C2.ink,"left",W-28);if(d)tx(x,d,X+14,Y+100,"13px "+FS2,C2.mute,"left",W-28)};
+ box(24,382,242,"🔥","Mejor racha",o.racha.n,o.racha.v?o.racha.v+" juernes seguidos":"");
+ const d0=o.deb[0];
+ if(o.primerAnio)box(274,382,242,"🏁","Arranca el registro",fd(o.inicio),"el primer juernes con datos");
+ else box(274,382,242,"🌱","Debutante del año",d0&&d0.n,d0?`${d0.v} partido${d0.v>1?"s":""}${o.deb.length>1?` · ${o.deb.length} debutaron`:""}`:"");
+ const fl=o.fieles.map(f=>f.n);
+ box(24,504,492,"📅","Fieles: a más de la mitad de los juernes",fl.length?fl.length+" jugador"+(fl.length>1?"es":""):"Nadie",fl.join(", "));
+ pie(x,"resumen "+o.y+" · solo presencias");
  return c;
 }
 // ---- ficha ----
